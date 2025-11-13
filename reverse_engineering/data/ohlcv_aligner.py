@@ -6,6 +6,7 @@ Aligns vault trades with OHLCV candles to compute indicators at entry/exit
 import pandas as pd
 import asyncio
 from engine.data_loader import BinanceDataLoader
+from reverse_engineering.data.hyperliquid_loader import HyperliquidDataLoader
 from pathlib import Path
 
 
@@ -13,7 +14,8 @@ class OHLCVAligner:
     """Aligns trades with OHLCV data and adds technical indicators"""
 
     def __init__(self, data_dir: str = "./data/binance"):
-        self.loader = BinanceDataLoader(data_dir)
+        self.binance_loader = BinanceDataLoader(data_dir)
+        self.hyperliquid_loader = HyperliquidDataLoader("./data/hyperliquid")
 
     def align_positions(
         self,
@@ -48,10 +50,14 @@ class OHLCVAligner:
         for symbol in symbols:
             print(f"  Fetching {symbol} data...")
 
-            # Fetch OHLCV
+            # Try Binance first, then fallback to Hyperliquid
+            ohlcv = pd.DataFrame()
+
+            # Try Binance
             try:
+                print(f"    Trying Binance...")
                 ohlcv = asyncio.run(
-                    self.loader.get_data(
+                    self.binance_loader.get_data(
                         symbol=symbol,
                         timeframe=timeframe,
                         start_date=start_date,
@@ -59,11 +65,28 @@ class OHLCVAligner:
                         use_cache=use_cache
                     )
                 )
+            except Exception as e:
+                print(f"    ⚠️  Binance failed: {e}")
 
-                if ohlcv.empty:
-                    print(f"    ⚠️  No data for {symbol}")
-                    continue
+            # Fallback to Hyperliquid if Binance failed
+            if ohlcv.empty:
+                try:
+                    print(f"    Trying Hyperliquid...")
+                    ohlcv = self.hyperliquid_loader.get_data(
+                        symbol=symbol,
+                        timeframe=timeframe,
+                        start_date=start_date,
+                        end_date=end_date,
+                        use_cache=use_cache
+                    )
+                except Exception as e:
+                    print(f"    ⚠️  Hyperliquid failed: {e}")
 
+            if ohlcv.empty:
+                print(f"    ❌ No data available for {symbol} from any source")
+                continue
+
+            try:
                 # Add basic indicators
                 ohlcv = self._add_indicators(ohlcv)
 
