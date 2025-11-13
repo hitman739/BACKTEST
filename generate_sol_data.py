@@ -135,13 +135,13 @@ def save_test_data(symbol: str, timeframe: str, df: pd.DataFrame, data_dir: str 
 
 
 if __name__ == '__main__':
-    # Generate 45 days of 1-minute data
-    # 45 days * 24 hours * 60 minutes = 64,800 candles
-    periods = 45 * 24 * 60
+    # Generate 60 days of 1-minute data
+    # 60 days * 24 hours * 60 minutes = 86,400 candles
+    periods = 60 * 24 * 60
 
     print("Generating synthetic SOLUSDT 1m data with volatility spikes...")
     df = generate_sol_data_with_spikes(
-        start_date='2024-10-01',
+        start_date='2024-09-14',
         periods=periods,
         base_price=150.0,
         daily_volatility=0.05  # 5% daily volatility (SOL is volatile)

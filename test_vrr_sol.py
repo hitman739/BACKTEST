@@ -12,12 +12,12 @@ from engine.reporter import generate_report
 import pandas as pd
 
 print("=" * 70)
-print("🚀 VRR BACKTEST - SOLUSDT 1m - Últimos 30 días")
+print("🚀 VRR BACKTEST - SOLUSDT 1m - Últimos 60 días")
 print("=" * 70)
 
-# Calcular fechas (últimos 30 días)
+# Calcular fechas (últimos 60 días)
 end_date = datetime(2024, 11, 13)  # Ajusta si necesitas
-start_date = end_date - timedelta(days=30)
+start_date = end_date - timedelta(days=60)
 
 print(f"\nPeríodo: {start_date.strftime('%Y-%m-%d')} a {end_date.strftime('%Y-%m-%d')}")
 print("Symbol: SOLUSDT")
