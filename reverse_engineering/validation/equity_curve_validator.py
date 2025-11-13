@@ -5,7 +5,7 @@ Compares inferred strategy performance with original vault performance
 
 import pandas as pd
 import numpy as np
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 import json
 from pathlib import Path
 
