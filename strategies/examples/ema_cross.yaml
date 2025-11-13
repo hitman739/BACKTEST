@@ -1,0 +1,69 @@
+# EMA Crossover Strategy
+# Simple trend-following strategy using EMA crossovers with ATR-based stops
+
+name: "EMA Crossover Strategy"
+
+# Indicator definitions
+indicators:
+  ema_fast:
+    type: ema
+    period: 20
+    source: close
+
+  ema_slow:
+    type: ema
+    period: 50
+    source: close
+
+  atr:
+    type: atr
+    period: 14
+
+  volume_ma:
+    type: volume_ma
+    period: 20
+
+# Entry conditions
+entry_conditions:
+  # Long entry: fast EMA crosses above slow EMA
+  long:
+    - "ema_fast > ema_slow"
+    - "ema_fast[1] <= ema_slow[1]"
+
+  # Short entry: fast EMA crosses below slow EMA
+  short:
+    - "ema_fast < ema_slow"
+    - "ema_fast[1] >= ema_slow[1]"
+
+# Exit rules
+exit_rules:
+  # Stop loss: 2x ATR from entry
+  stop_loss_atr_multiple: 2.0
+
+  # Take profit: 3x ATR from entry
+  take_profit_atr_multiple: 3.0
+
+  # Optional trailing stop
+  # trailing_stop_atr_multiple: 1.5
+
+# Risk management
+risk:
+  # Risk 1% of account per trade
+  risk_per_trade_pct: 1.0
+
+  # Maximum 50% of account equity per trade
+  max_equity_per_trade: 0.5
+
+  # Leverage to use
+  leverage: 5
+
+# Market filters
+filters:
+  # Minimum ATR to trade (0 = no filter)
+  min_atr: 0
+
+  # Minimum volume (0 = no filter)
+  min_volume: 0
+
+  # Optional: only trade during certain UTC hours
+  # trading_hours: [0, 23]
