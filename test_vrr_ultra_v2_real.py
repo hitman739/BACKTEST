@@ -38,14 +38,14 @@ print()
 strategy = VRRUltraV2()
 print(f"Estrategia: {strategy.name}")
 print("\n✨ IMPROVEMENTS IN V2:")
-print("  🔧 Wider stops: 1.2× setup range (reduce stop outs from 34%)")
-print("  🎯 Closer TPs: TP1 1.3R, TP2 2.0R (more achievable)")
-print("  🛡️  Earlier trailing: 1.0R activation (protect profits sooner)")
+print("  🎯 Closer TPs: TP1 1.3R, TP2 2.0R (more achievable, was 1.5R/2.5R)")
+print("  🛡️  Earlier trailing: 1.0R activation (protect profits sooner, was 1.2R)")
+print("  🔒 Tighter trailing: 0.4R distance (lock profits, was 0.5R)")
 print("  ⏱️  More patience: 10 bars timeout (was 8)")
 print("\n🎯 TARGET METRICS:")
 print("  • Win Rate: >55%")
 print("  • Profit Factor: >1.0 (PROFITABLE)")
-print("  • Stop Losses: <25% (was 34.2%)")
+print("  • Stop Losses: <30% (was 34.2%)")
 print("  • TPs achieved: >30% (was 21.1%)")
 print()
 
@@ -115,7 +115,7 @@ try:
             # Compare with v1
             sl_pct = exit_counts.get('stop_loss', 0) / len(trades_df) * 100 if len(trades_df) > 0 else 0
             tp_pct = exit_counts.get('take_profit_2', 0) / len(trades_df) * 100 if len(trades_df) > 0 else 0
-            print(f"\n  📉 Stop Losses: {sl_pct:.1f}% (target <25%, was 34.2% in v1)")
+            print(f"\n  📉 Stop Losses: {sl_pct:.1f}% (target <30%, was 34.2% in v1)")
             print(f"  📈 TP2 achieved: {tp_pct:.1f}% (target >30%, was 21.1% in v1)")
 
         # Top trades
