@@ -141,7 +141,7 @@ if __name__ == '__main__':
 
     print("Generating synthetic SOLUSDT 1m data with volatility spikes...")
     df = generate_sol_data_with_spikes(
-        start_date='2024-09-14',
+        start_date='2025-09-14',
         periods=periods,
         base_price=150.0,
         daily_volatility=0.05  # 5% daily volatility (SOL is volatile)
