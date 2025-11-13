@@ -244,3 +244,75 @@ def load_data(
     """
     loader = BinanceDataLoader(data_dir)
     return asyncio.run(loader.get_data(symbol, timeframe, start_date, end_date, use_cache))
+
+
+class DataLoader:
+    """
+    Simplified DataLoader class for easy import and usage
+
+    This class provides a simple interface for loading OHLCV data
+    compatible with common usage patterns.
+    """
+
+    def __init__(self, data_dir: str = "./data/binance"):
+        """
+        Initialize DataLoader
+
+        Args:
+            data_dir: Directory for data storage
+        """
+        self.data_dir = data_dir
+        self.loader = BinanceDataLoader(data_dir)
+
+    def load_ohlcv(
+        self,
+        symbol: str,
+        timeframe: str,
+        start: str,
+        end: str,
+        use_cache: bool = True
+    ) -> pd.DataFrame:
+        """
+        Load OHLCV data for a symbol and timeframe
+
+        Args:
+            symbol: Trading symbol (e.g., 'BTCUSDT', 'ETHUSDT')
+            timeframe: Timeframe (e.g., '1m', '5m', '1h', '1d')
+            start: Start date in 'YYYY-MM-DD' format
+            end: End date in 'YYYY-MM-DD' format
+            use_cache: Whether to use cached data (default: True)
+
+        Returns:
+            DataFrame with columns: timestamp, open, high, low, close, volume
+
+        Example:
+            >>> loader = DataLoader()
+            >>> df = loader.load_ohlcv('BTCUSDT', '5m', '2024-01-01', '2024-01-31')
+            >>> print(df.head())
+        """
+        return asyncio.run(
+            self.loader.get_data(symbol, timeframe, start, end, use_cache)
+        )
+
+    async def load_ohlcv_async(
+        self,
+        symbol: str,
+        timeframe: str,
+        start: str,
+        end: str,
+        use_cache: bool = True
+    ) -> pd.DataFrame:
+        """
+        Async version of load_ohlcv
+
+        Args:
+            symbol: Trading symbol
+            timeframe: Timeframe
+            start: Start date 'YYYY-MM-DD'
+            end: End date 'YYYY-MM-DD'
+            use_cache: Whether to use cache
+
+        Returns:
+            DataFrame with OHLCV data
+        """
+        return await self.loader.get_data(symbol, timeframe, start, end, use_cache)
