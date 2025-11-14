@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-Compare Aggressive Strategies - REALISTIC FEES & SLIPPAGE
+Compare Aggressive Strategies - REALISTIC FEES & SLIPPAGE + 10X LEVERAGE
 
 Tests 3 aggressive strategies with REAL market conditions:
+- 🔥 10X LEVERAGE (multiplies returns AND losses)
 - Binance taker fees: 0.06% per trade
 - Realistic slippage: 0.03-0.05%
 - Volatile altcoin pairs
@@ -13,7 +14,7 @@ Strategies:
 2. Momentum Hunter (15m) - Breakout trading, target 3-6% weekly
 3. Hybrid Alpha (15m) - Balanced hybrid, target 3-5% weekly
 
-Target: 3-5% weekly returns for bot sales
+Target: 3-5% weekly returns for bot sales (WITH 10X LEVERAGE)
 """
 
 import sys
@@ -88,7 +89,7 @@ def test_strategy(strategy_name, strategy_config, symbol, pair_info):
         strategy = strategy_config['class']()
         timeframe = strategy_config['timeframe']
 
-        # Run backtest with REALISTIC fees
+        # Run backtest with REALISTIC fees + LEVERAGE
         backtester = Backtester(
             strategy=strategy,
             symbol=symbol,
@@ -96,6 +97,7 @@ def test_strategy(strategy_name, strategy_config, symbol, pair_info):
             start_date=start_str,
             end_date=end_str,
             initial_balance=INITIAL_BALANCE,
+            leverage=10.0,  # 🔥 10X LEVERAGE - multiplies returns AND losses
             maker_fee=0.0004,  # Won't use this (we're takers)
             taker_fee=strategy_config['taker_fee'],  # 0.06% - REALISTIC
             slippage_bps=strategy_config['slippage_bps'],  # REALISTIC slippage
@@ -139,10 +141,12 @@ def test_strategy(strategy_name, strategy_config, symbol, pair_info):
 
 def main():
     print("=" * 100)
-    print("⚡ AGGRESSIVE STRATEGIES COMPARISON - REALISTIC MARKET CONDITIONS")
+    print("⚡ AGGRESSIVE STRATEGIES COMPARISON - 10X LEVERAGE + REALISTIC FEES")
     print("=" * 100)
     print()
-    print("🎯 Target: 3-5% WEEKLY returns")
+    print("🎯 Target: 3-5% WEEKLY returns (WITH 10X LEVERAGE)")
+    print()
+    print("🔥 LEVERAGE: 10X (multiplies both gains AND losses)")
     print()
     print("💰 Real Costs:")
     print("   - Binance Taker Fee: 0.06% per trade (no BNB discount)")
@@ -151,6 +155,7 @@ def main():
     print()
     print(f"📊 Testing Period: Last {DAYS_BACK} days ({DAYS_BACK/7:.1f} weeks)")
     print(f"💵 Initial Balance: ${INITIAL_BALANCE:,.0f}")
+    print(f"💰 Effective Buying Power: ${INITIAL_BALANCE * 10:,.0f} (with 10x leverage)")
     print()
     print("🪙 Pairs:")
     for symbol, info in PAIRS.items():
