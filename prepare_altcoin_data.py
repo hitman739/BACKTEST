@@ -2,7 +2,7 @@
 """
 Download data for volatile altcoins testing
 
-Downloads 15m data for AVAX, LINK, DOT, ADA, ATOM
+Downloads 1h data for AVAX, LINK, DOT, ADA, ATOM
 """
 
 import time
@@ -19,7 +19,7 @@ PAIRS = [
     'ATOMUSDT',   # Cosmos
 ]
 
-TIMEFRAME = '15m'
+TIMEFRAME = '1h'  # Changed from 15m - less noise, cleaner signals
 DAYS_BACK = 60
 
 

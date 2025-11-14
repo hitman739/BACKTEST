@@ -24,7 +24,7 @@ VOLATILE_ALTCOINS = [
     'ATOMUSDT',   # Cosmos - volatile
 ]
 
-TIMEFRAME = '15m'
+TIMEFRAME = '1h'  # Changed from 15m - less noise, better signals
 DAYS_BACK = 60
 INITIAL_BALANCE = 10000
 
