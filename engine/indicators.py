@@ -5,7 +5,8 @@ Provides all indicators needed for strategy development:
 - Moving averages (SMA, EMA, WMA)
 - Momentum indicators (RSI, MACD)
 - Volatility indicators (ATR, Bollinger Bands)
-- Volume indicators (VWAP, Volume MA)
+- Trend indicators (ADX)
+- Volume indicators (VWAP, Volume MA, OBV)
 - Price action (Swing High/Low, True Range)
 - Fibonacci levels
 """
@@ -249,6 +250,54 @@ class Indicators:
             }
 
         return levels
+
+    @staticmethod
+    def adx(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) -> pd.Series:
+        """
+        Average Directional Index (ADX)
+
+        Measures trend strength (0-100):
+        - 0-25: Weak/absent trend
+        - 25-50: Strong trend
+        - 50-75: Very strong trend
+        - 75-100: Extremely strong trend
+
+        Args:
+            high: High prices
+            low: Low prices
+            close: Close prices
+            period: Lookback period (default 14)
+
+        Returns:
+            ADX values (0-100)
+        """
+        # Calculate True Range
+        tr = Indicators.true_range(high, low, close)
+
+        # Calculate directional movement
+        high_diff = high.diff()
+        low_diff = -low.diff()
+
+        # Positive and negative directional movement
+        plus_dm = pd.Series(0.0, index=high.index)
+        minus_dm = pd.Series(0.0, index=low.index)
+
+        plus_dm[(high_diff > low_diff) & (high_diff > 0)] = high_diff
+        minus_dm[(low_diff > high_diff) & (low_diff > 0)] = low_diff
+
+        # Smooth the values using Wilder's smoothing (similar to EMA)
+        atr = tr.ewm(alpha=1/period, adjust=False).mean()
+        plus_di = 100 * (plus_dm.ewm(alpha=1/period, adjust=False).mean() / atr)
+        minus_di = 100 * (minus_dm.ewm(alpha=1/period, adjust=False).mean() / atr)
+
+        # Calculate DX (Directional Index)
+        dx = 100 * abs(plus_di - minus_di) / (plus_di + minus_di)
+        dx = dx.fillna(0)
+
+        # ADX is the smoothed DX
+        adx = dx.ewm(alpha=1/period, adjust=False).mean()
+
+        return adx
 
     @staticmethod
     def volume_ma(volume: pd.Series, period: int = 20) -> pd.Series:
