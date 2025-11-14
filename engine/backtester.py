@@ -226,11 +226,14 @@ class Backtester:
                     )
 
                     if executed_order.is_filled:
-                        # Open position
+                        # Open position with leverage applied to size
+                        # With 10x leverage, position size is 10x larger
+                        leveraged_size = executed_order.filled_quantity * self.leverage
+
                         self.account.open_position(
                             symbol=self.symbol,
                             side='buy' if executed_order.side.value == 'buy' else 'sell',
-                            size=executed_order.filled_quantity,
+                            size=leveraged_size,  # Size multiplied by leverage
                             entry_price=executed_order.filled_price,
                             leverage=self.leverage,
                             fee=executed_order.fee,
