@@ -184,13 +184,13 @@ class MomentumHunterStrategy(BaseStrategy):
         entry_price = bar['close']
         atr = data['atr'].iloc[bar_index]
 
-        # Calculate position size (1.5% risk)
+        # Calculate position size (1.5% risk) WITH LEVERAGE
         risk_amount = context.account_equity * (self.risk_pct / 100)
         stop_distance = atr * self.stop_atr_multiplier
-        position_size = risk_amount / stop_distance
+        position_size = (risk_amount / stop_distance) * context.leverage  # 🔥 LEVERAGE APPLIED
 
-        # Max 30% of balance
-        max_size = (context.account_equity * 0.30) / entry_price
+        # Max 30% of balance WITH LEVERAGE
+        max_size = (context.account_equity * 0.30 * context.leverage) / entry_price
         position_size = min(position_size, max_size)
 
         # Set stops

@@ -243,13 +243,13 @@ class HybridAlphaStrategy(BaseStrategy):
         """Enter long position"""
         entry_price = bar['close']
 
-        # Calculate position size (1.2% risk)
+        # Calculate position size (1.2% risk) WITH LEVERAGE
         risk_amount = context.account_equity * (self.risk_pct / 100)
         stop_distance = entry_price * self.base_stop_pct
-        position_size = risk_amount / stop_distance
+        position_size = (risk_amount / stop_distance) * context.leverage  # 🔥 LEVERAGE APPLIED
 
-        # Max 25% of balance
-        max_size = (context.account_equity * 0.25) / entry_price
+        # Max 25% of balance WITH LEVERAGE
+        max_size = (context.account_equity * 0.25 * context.leverage) / entry_price
         position_size = min(position_size, max_size)
 
         # Set stops

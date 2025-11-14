@@ -167,13 +167,13 @@ class ScalperProStrategy(BaseStrategy):
         """Enter long position"""
         entry_price = bar['close']
 
-        # Calculate position size (1% risk)
+        # Calculate position size (1% risk) WITH LEVERAGE
         risk_amount = context.account_equity * (self.risk_pct / 100)
         stop_distance = entry_price * self.stop_loss_pct
-        position_size = risk_amount / stop_distance
+        position_size = (risk_amount / stop_distance) * context.leverage  # 🔥 LEVERAGE APPLIED
 
-        # Max 20% of balance
-        max_size = (context.account_equity * 0.20) / entry_price
+        # Max 20% of balance WITH LEVERAGE
+        max_size = (context.account_equity * 0.20 * context.leverage) / entry_price
         position_size = min(position_size, max_size)
 
         # Set stops
