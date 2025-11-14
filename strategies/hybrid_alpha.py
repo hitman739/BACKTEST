@@ -4,7 +4,7 @@ Hybrid Alpha Strategy
 Balanced hybrid strategy combining mean reversion + momentum targeting 3-5% weekly.
 
 Core Logic:
-- Mean reversion base: RSI divergence + oversold/overbought
+- Mean reversion base: RSI oversold/overbought
 - Momentum overlay: Volume + ADX confirmation
 - Multi-target exits: Quick scalps + trend rides
 - Adaptive stops based on market conditions
@@ -14,269 +14,256 @@ Best for: 15m timeframe, volatile altcoins
 Trade frequency: 40-50 per week
 """
 
-from typing import Optional
+from typing import List
 import pandas as pd
-import numpy as np
-
-from engine.strategy import Strategy, TradeSignal, PositionState
+from engine.strategy import BaseStrategy, StrategyContext, StrategyState
+from engine.orders import Order, OrderType, OrderSide
 from engine.indicators import Indicators
 
 
-class HybridAlphaStrategy(Strategy):
+class HybridAlphaStrategy(BaseStrategy):
     """Hybrid mean reversion + momentum strategy"""
 
-    def __init__(self):
-        super().__init__()
-        self.name = "Hybrid Alpha"
+    def __init__(self, config: dict = None):
+        if config is None:
+            config = {
+                'name': 'Hybrid Alpha',
 
-        # Indicators
-        self.rsi_period = 14
-        self.rsi_oversold = 35  # Slightly less extreme than pure scalping
-        self.rsi_overbought = 65
+                # Indicators
+                'rsi_period': 14,
+                'rsi_oversold': 35,  # Less extreme than pure scalping
+                'rsi_overbought': 65,
+                'adx_period': 14,
+                'min_adx': 20,  # Lower than pure momentum
+                'volume_period': 20,
+                'min_volume_mult': 1.3,
+                'ema_fast': 9,
+                'ema_slow': 21,
 
-        self.adx_period = 14
-        self.min_adx = 20  # Lower than pure momentum (accept weaker trends)
+                # Risk management (balanced)
+                'base_stop_pct': 0.008,  # 0.8%
+                'quick_target_pct': 0.012,  # 1.2%
+                'momentum_target_pct': 0.025,  # 2.5%
+                'breakeven_pct': 0.005,  # 0.5%
 
-        self.volume_period = 20
-        self.min_volume_ratio = 1.3  # Lower than pure breakout
+                'risk_pct': 1.2,  # 1.2% risk (balanced)
+            }
 
-        # EMAs for trend context
-        self.ema_fast = 9
-        self.ema_slow = 21
+        super().__init__(config)
 
-        # Risk management (balanced)
-        self.base_stop_pct = 0.008  # 0.8% base stop
-        self.quick_target_pct = 0.012  # 1.2% quick target
-        self.momentum_target_pct = 0.025  # 2.5% momentum target
+        self.rsi_period = config['rsi_period']
+        self.rsi_oversold = config['rsi_oversold']
+        self.rsi_overbought = config['rsi_overbought']
+        self.adx_period = config['adx_period']
+        self.min_adx = config['min_adx']
+        self.volume_period = config['volume_period']
+        self.min_volume_mult = config['min_volume_mult']
+        self.ema_fast = config['ema_fast']
+        self.ema_slow = config['ema_slow']
+        self.base_stop_pct = config['base_stop_pct']
+        self.quick_target_pct = config['quick_target_pct']
+        self.momentum_target_pct = config['momentum_target_pct']
+        self.breakeven_pct = config['breakeven_pct']
+        self.risk_pct = config['risk_pct']
 
-        # Position management
-        self.take_quick = 0.5  # Take 50% at quick target
-        self.trail_remainder = True  # Trail remaining 50%
-
-    def initialize(self, data: pd.DataFrame) -> pd.DataFrame:
+    def initialize(self, context: StrategyContext) -> pd.DataFrame:
         """Add required indicators"""
+        df = context.data.copy()
+
         # RSI
-        data['rsi'] = Indicators.rsi(data['close'], self.rsi_period)
+        df['rsi'] = Indicators.rsi(df['close'], self.rsi_period)
 
         # ADX
-        data['adx'] = Indicators.adx(data['high'], data['low'], data['close'], self.adx_period)
+        df['adx'] = Indicators.adx(df['high'], df['low'], df['close'], self.adx_period)
 
         # Volume
-        data['volume_ma'] = Indicators.volume_ma(data['volume'], self.volume_period)
-        data['volume_ratio'] = data['volume'] / data['volume_ma']
+        df['volume_ma'] = Indicators.volume_ma(df['volume'], self.volume_period)
+        df['volume_ratio'] = df['volume'] / df['volume_ma']
 
         # EMAs
-        data['ema_fast'] = Indicators.ema(data['close'], self.ema_fast)
-        data['ema_slow'] = Indicators.ema(data['close'], self.ema_slow)
+        df['ema_fast'] = Indicators.ema(df['close'], self.ema_fast)
+        df['ema_slow'] = Indicators.ema(df['close'], self.ema_slow)
 
         # ATR
-        data['atr'] = Indicators.atr(data['high'], data['low'], data['close'], 14)
+        df['atr'] = Indicators.atr(df['high'], df['low'], df['close'], 14)
 
-        # Bollinger Bands for mean reversion context
-        bb_middle, bb_upper, bb_lower = Indicators.bollinger_bands(data['close'], 20, 2.0)
-        data['bb_upper'] = bb_upper
-        data['bb_lower'] = bb_lower
-        data['bb_middle'] = bb_middle
+        # Bollinger Bands
+        bb_middle, bb_upper, bb_lower = Indicators.bollinger_bands(df['close'], 20, 2.0)
+        df['bb_upper'] = bb_upper
+        df['bb_lower'] = bb_lower
+        df['bb_middle'] = bb_middle
 
-        return data
+        return df
 
-    def generate_signal(
-        self,
-        data: pd.DataFrame,
-        idx: int,
-        position: Optional[PositionState] = None
-    ) -> TradeSignal:
-        """Generate trading signals"""
+    def on_bar(self, bar: pd.Series, bar_index: int, state: StrategyState, context: StrategyContext) -> List[Order]:
+        """Entry logic - hybrid setups"""
+        if bar_index < max(self.rsi_period, self.ema_slow) or state.position_size != 0:
+            return []
 
-        if position is None:
-            # Check both mean reversion and momentum setups
-            signal = self._check_entry(data, idx)
-            if signal:
-                return signal
-
-        else:
-            # Manage position
-            signal = self._check_exit(data, idx, position)
-            if signal:
-                return signal
-
-        return TradeSignal.HOLD
-
-    def _check_entry(self, data: pd.DataFrame, idx: int) -> Optional[TradeSignal]:
-        """Check for hybrid entry (mean reversion OR momentum)"""
-        if idx < 2:
-            return None
-
-        current = data.iloc[idx]
-        prev = data.iloc[idx - 1]
+        data = context.data.iloc[:bar_index+1]
 
         # Get values
-        rsi = current['rsi']
-        adx = current['adx']
-        volume_ratio = current['volume_ratio']
-        ema_fast = current['ema_fast']
-        ema_slow = current['ema_slow']
-        close = current['close']
-        bb_lower = current['bb_lower']
-        bb_upper = current['bb_upper']
+        rsi = data['rsi'].iloc[bar_index]
+        adx = data['adx'].iloc[bar_index]
+        volume_ratio = data['volume_ratio'].iloc[bar_index]
+        ema_fast = data['ema_fast'].iloc[bar_index]
+        ema_slow = data['ema_slow'].iloc[bar_index]
+        close = bar['close']
+        bb_lower = data['bb_lower'].iloc[bar_index]
 
-        # Setup Type 1: Mean Reversion (high probability, quick profit)
-        # RSI oversold + at BB lower + volume confirmation
-        if rsi < self.rsi_oversold and volume_ratio > self.min_volume_ratio:
-            if close <= bb_lower * 1.01:  # Near or below lower BB
-                # Confirmation: price bouncing
-                if current['close'] > current['open']:
-                    return TradeSignal.LONG
+        # Setup Type 1: Mean Reversion (RSI oversold + BB)
+        if rsi < self.rsi_oversold and volume_ratio > self.min_volume_mult:
+            if close <= bb_lower * 1.01:  # Near lower BB
+                if bar['close'] > bar['open']:  # Bullish candle
+                    return self._enter_long(bar, bar_index, state, context, data, 'mean_reversion')
 
-        # Setup Type 2: Momentum Continuation (lower probability, big profit)
-        # Strong trend + volume + breakout
-        if adx > self.min_adx and volume_ratio > self.min_volume_ratio * 1.2:
-            # Uptrend: EMA fast above slow
-            if ema_fast > ema_slow * 1.002:  # At least 0.2% separation
-                # Price above both EMAs
+        # Setup Type 2: Momentum Continuation
+        if adx > self.min_adx and volume_ratio > self.min_volume_mult * 1.2:
+            if ema_fast > ema_slow * 1.002:  # 0.2% separation
                 if close > ema_fast:
-                    # Recent pullback to EMA (buy the dip in uptrend)
-                    if prev['low'] <= ema_fast * 1.005:
-                        return TradeSignal.LONG
+                    # Pullback buy
+                    prev_low = data['low'].iloc[bar_index-1]
+                    if prev_low <= ema_fast * 1.005:
+                        return self._enter_long(bar, bar_index, state, context, data, 'momentum')
 
-        # Setup Type 3: Hybrid (best of both)
-        # RSI oversold BUT in uptrend (pullback buy)
-        if rsi < self.rsi_oversold + 5 and volume_ratio > self.min_volume_ratio:
+        # Setup Type 3: Hybrid (RSI + trend)
+        if rsi < self.rsi_oversold + 5 and volume_ratio > self.min_volume_mult:
             if ema_fast > ema_slow:  # Uptrend
-                if adx > self.min_adx - 5:  # Decent trend strength
-                    if current['close'] > current['open']:  # Bullish candle
-                        return TradeSignal.LONG
+                if adx > self.min_adx - 5:  # Decent trend
+                    if bar['close'] > bar['open']:  # Bullish
+                        return self._enter_long(bar, bar_index, state, context, data, 'hybrid')
 
-        # Short setups (optional - crypto is more long-biased)
-        # Disabled for now
+        return []
 
-        return None
-
-    def _check_exit(
-        self,
-        data: pd.DataFrame,
-        idx: int,
-        position: PositionState
-    ) -> Optional[TradeSignal]:
+    def on_exit(self, bar: pd.Series, bar_index: int, state: StrategyState, context: StrategyContext) -> List[Order]:
         """Adaptive exit based on entry type"""
-        current = data.iloc[idx]
-        current_price = current['close']
-        rsi = current['rsi']
-        atr = current['atr']
-        ema_fast = current['ema_fast']
-        ema_slow = current['ema_slow']
+        if state.position_size == 0 or not state.entry_price:
+            return []
 
-        if position.direction == 'long':
-            # Calculate P&L
-            pnl_pct = (current_price - position.entry_price) / position.entry_price
+        orders = []
+        current_price = bar['close']
+        data = context.data.iloc[:bar_index+1]
+        rsi = data['rsi'].iloc[bar_index]
+        atr = data['atr'].iloc[bar_index]
+        ema_fast = data['ema_fast'].iloc[bar_index]
+        ema_slow = data['ema_slow'].iloc[bar_index]
 
-            # Base stop loss (tight)
+        if state.position_size > 0:  # Long position
+            pnl_pct = (current_price - state.entry_price) / state.entry_price
+            entry_type = state.custom_data.get('entry_type', 'mean_reversion')
+
+            # Base stop loss
             if pnl_pct <= -self.base_stop_pct:
-                return TradeSignal.CLOSE
-
-            # Detect entry type based on position metadata
-            if not hasattr(position, 'entry_type'):
-                # Determine retroactively based on entry conditions
-                if position.entry_rsi < self.rsi_oversold:
-                    position.entry_type = 'mean_reversion'
-                else:
-                    position.entry_type = 'momentum'
+                orders.append(Order(
+                    order_id=f'sl_{bar_index}',
+                    symbol=context.symbol,
+                    side=OrderSide.SELL,
+                    order_type=OrderType.MARKET,
+                    quantity=abs(state.position_size),
+                    reduce_only=True,
+                    tags={'exit_reason': 'STOP_LOSS'}
+                ))
 
             # Mean reversion exits: Quick profit
-            if position.entry_type == 'mean_reversion':
-                # Take profit at quick target
+            elif entry_type == 'mean_reversion':
                 if pnl_pct >= self.quick_target_pct:
-                    return TradeSignal.CLOSE
+                    orders.append(Order(
+                        order_id=f'tp_{bar_index}',
+                        symbol=context.symbol,
+                        side=OrderSide.SELL,
+                        order_type=OrderType.MARKET,
+                        quantity=abs(state.position_size),
+                        reduce_only=True,
+                        tags={'exit_reason': 'QUICK_PROFIT'}
+                    ))
+                elif rsi >= 50 and pnl_pct > 0:
+                    orders.append(Order(
+                        order_id=f'rsi_{bar_index}',
+                        symbol=context.symbol,
+                        side=OrderSide.SELL,
+                        order_type=OrderType.MARKET,
+                        quantity=abs(state.position_size),
+                        reduce_only=True,
+                        tags={'exit_reason': 'RSI_NEUTRAL'}
+                    ))
 
-                # Exit if RSI back to neutral
-                if rsi >= 50:
-                    if pnl_pct > 0:  # Only if profitable
-                        return TradeSignal.CLOSE
+            # Momentum exits: Let it run with trailing
+            elif entry_type in ['momentum', 'hybrid']:
+                # Quick target
+                if pnl_pct >= self.quick_target_pct:
+                    state.custom_data['hit_quick_target'] = True
 
-            # Momentum exits: Let it run
-            elif position.entry_type == 'momentum':
-                # Quick target (take 50% - tracked but not executed in backtest)
-                if not hasattr(position, 'hit_quick_target'):
-                    if pnl_pct >= self.quick_target_pct:
-                        position.hit_quick_target = True
+                # Trailing stop
+                if state.custom_data.get('hit_quick_target', False):
+                    if 'highest_price' not in state.custom_data:
+                        state.custom_data['highest_price'] = current_price
 
-                # Trailing stop after quick target
-                if hasattr(position, 'hit_quick_target'):
-                    if not hasattr(position, 'highest_price'):
-                        position.highest_price = current_price
-
-                    position.highest_price = max(position.highest_price, current_price)
+                    state.custom_data['highest_price'] = max(state.custom_data['highest_price'], current_price)
                     trail_distance = atr * 1.5
-                    trailing_stop = position.highest_price - trail_distance
+                    trailing_stop = state.custom_data['highest_price'] - trail_distance
 
                     if current_price <= trailing_stop:
-                        return TradeSignal.CLOSE
+                        orders.append(Order(
+                            order_id=f'trail_{bar_index}',
+                            symbol=context.symbol,
+                            side=OrderSide.SELL,
+                            order_type=OrderType.MARKET,
+                            quantity=abs(state.position_size),
+                            reduce_only=True,
+                            tags={'exit_reason': 'TRAILING_STOP'}
+                        ))
 
                 # Full momentum target
                 if pnl_pct >= self.momentum_target_pct:
-                    return TradeSignal.CLOSE
+                    orders.append(Order(
+                        order_id=f'tp_mom_{bar_index}',
+                        symbol=context.symbol,
+                        side=OrderSide.SELL,
+                        order_type=OrderType.MARKET,
+                        quantity=abs(state.position_size),
+                        reduce_only=True,
+                        tags={'exit_reason': 'MOMENTUM_TARGET'}
+                    ))
 
                 # Exit if trend breaks
-                if ema_fast < ema_slow:
-                    if pnl_pct > 0:  # Only if profitable
-                        return TradeSignal.CLOSE
+                if ema_fast < ema_slow and pnl_pct > 0:
+                    orders.append(Order(
+                        order_id=f'trend_{bar_index}',
+                        symbol=context.symbol,
+                        side=OrderSide.SELL,
+                        order_type=OrderType.MARKET,
+                        quantity=abs(state.position_size),
+                        reduce_only=True,
+                        tags={'exit_reason': 'TREND_BREAK'}
+                    ))
 
-            # Universal exits
-            # Breakeven move at +0.5%
-            if pnl_pct >= 0.005:
-                if not hasattr(position, 'breakeven_moved'):
-                    position.breakeven_moved = True
-                    # Would move stop to entry here
+        return orders
 
-        elif position.direction == 'short':
-            # Similar logic for shorts
-            pnl_pct = (position.entry_price - current_price) / position.entry_price
+    def _enter_long(self, bar: pd.Series, bar_index: int, state: StrategyState, context: StrategyContext, data: pd.DataFrame, entry_type: str) -> List[Order]:
+        """Enter long position"""
+        entry_price = bar['close']
 
-            if pnl_pct <= -self.base_stop_pct:
-                return TradeSignal.CLOSE
+        # Calculate position size (1.2% risk)
+        risk_amount = context.account_equity * (self.risk_pct / 100)
+        stop_distance = entry_price * self.base_stop_pct
+        position_size = risk_amount / stop_distance
 
-            if pnl_pct >= self.quick_target_pct:
-                return TradeSignal.CLOSE
-
-        return None
-
-    def calculate_position_size(
-        self,
-        balance: float,
-        current_price: float,
-        atr: float
-    ) -> float:
-        """Calculate position size (1.2% risk per trade)"""
-        risk_per_trade = balance * 0.012  # 1.2% risk (balanced)
-        stop_distance = current_price * self.base_stop_pct
-        position_size = risk_per_trade / stop_distance
-
-        # Max 25% of balance per trade
-        max_size = (balance * 0.25) / current_price
+        # Max 25% of balance
+        max_size = (context.account_equity * 0.25) / entry_price
         position_size = min(position_size, max_size)
 
-        return position_size
+        # Set stops
+        state.stop_loss = entry_price * (1 - self.base_stop_pct)
+        state.take_profit = entry_price * (1 + self.quick_target_pct)
+        state.entry_price = entry_price
+        state.custom_data['entry_type'] = entry_type
+        state.custom_data['entry_rsi'] = data['rsi'].iloc[bar_index]
 
-    def get_stop_loss(
-        self,
-        entry_price: float,
-        direction: str,
-        atr: float
-    ) -> float:
-        """Calculate stop loss price"""
-        if direction == 'long':
-            return entry_price * (1 - self.base_stop_pct)
-        else:  # short
-            return entry_price * (1 + self.base_stop_pct)
-
-    def get_take_profit(
-        self,
-        entry_price: float,
-        direction: str,
-        atr: float
-    ) -> float:
-        """Calculate take profit price (quick target)"""
-        if direction == 'long':
-            return entry_price * (1 + self.quick_target_pct)
-        else:  # short
-            return entry_price * (1 - self.quick_target_pct)
+        return [Order(
+            order_id=f'hybrid_long_{bar_index}',
+            symbol=context.symbol,
+            side=OrderSide.BUY,
+            order_type=OrderType.MARKET,
+            quantity=position_size,
+            tags={'strategy': 'hybrid_alpha', 'setup': entry_type}
+        )]
