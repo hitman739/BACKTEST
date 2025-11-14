@@ -94,7 +94,12 @@ class Backtester:
         )
 
         self.data: Optional[pd.DataFrame] = None
-        self.state = StrategyState()
+
+        # Allow strategy to provide custom state class
+        if hasattr(strategy, 'get_initial_state'):
+            self.state = strategy.get_initial_state()
+        else:
+            self.state = StrategyState()
 
     def load_data(self) -> pd.DataFrame:
         """Load historical data"""
