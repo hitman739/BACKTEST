@@ -52,23 +52,26 @@ try:
 
     results = backtester.run()
 
+    # Extract metrics
+    metrics = results['metrics']
+
     print("\n" + "=" * 70)
     print("RESULTS")
     print("=" * 70)
 
-    print(f"Total Return: {results['total_return_pct']:.2f}%")
-    print(f"Total Trades: {results['total_trades']}")
+    print(f"Total Return: {metrics['total_return_pct']:.2f}%")
+    print(f"Total Trades: {metrics['total_trades']}")
 
-    if results['total_trades'] > 0:
-        print(f"Winning Trades: {results['winning_trades']}")
-        print(f"Win Rate: {results['winning_trades']/results['total_trades']*100:.1f}%")
-        print(f"Profit Factor: {results['profit_factor']:.2f}")
-        print(f"Max Drawdown: {results['max_drawdown_pct']:.2f}%")
-        print(f"Sharpe Ratio: {results['sharpe_ratio']:.2f}")
+    if metrics['total_trades'] > 0:
+        print(f"Winning Trades: {metrics['winning_trades']}")
+        print(f"Win Rate: {metrics['winning_trades']/metrics['total_trades']*100:.1f}%")
+        print(f"Profit Factor: {metrics['profit_factor']:.2f}")
+        print(f"Max Drawdown: {metrics['max_drawdown_pct']:.2f}%")
+        print(f"Sharpe Ratio: {metrics['sharpe_ratio']:.2f}")
 
         # Calculate weekly
         days_traded = 7
-        weekly_ret = (results['total_return_pct'] / days_traded) * 7
+        weekly_ret = (metrics['total_return_pct'] / days_traded) * 7
         print(f"Weekly Return: {weekly_ret:.2f}%")
 
         print("\n✓ SUCCESS - Strategy is generating trades!")

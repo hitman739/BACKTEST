@@ -136,19 +136,22 @@ def print_strategy_results(strategy_name, strategy_config, pair_results):
             print(f"{pair:<12} {'ERROR':<10}")
             continue
 
-        total_ret = results.get('total_return_pct', 0.0)
+        # Extract metrics from results
+        metrics = results.get('metrics', {})
+
+        total_ret = metrics.get('total_return_pct', 0.0)
         total_returns.append(total_ret)
 
-        num_trades = results.get('total_trades', 0)
+        num_trades = metrics.get('total_trades', 0)
         total_trades.append(num_trades)
 
-        winning_trades = results.get('winning_trades', 0)
+        winning_trades = metrics.get('winning_trades', 0)
         total_wins.append(winning_trades)
 
         win_rate = (winning_trades / num_trades * 100) if num_trades > 0 else 0.0
-        profit_factor = results.get('profit_factor', 0.0)
-        max_dd = results.get('max_drawdown_pct', 0.0)
-        sharpe = results.get('sharpe_ratio', 0.0)
+        profit_factor = metrics.get('profit_factor', 0.0)
+        max_dd = metrics.get('max_drawdown_pct', 0.0)
+        sharpe = metrics.get('sharpe_ratio', 0.0)
 
         # Calculate weekly return
         days_traded = DAYS_BACK
@@ -201,9 +204,10 @@ def print_comparison_table(all_results):
         for pair, results in pair_results.items():
             if results is None:
                 continue
-            total_returns.append(results.get('total_return_pct', 0.0))
-            total_trades += results.get('total_trades', 0)
-            total_wins += results.get('winning_trades', 0)
+            metrics = results.get('metrics', {})
+            total_returns.append(metrics.get('total_return_pct', 0.0))
+            total_trades += metrics.get('total_trades', 0)
+            total_wins += metrics.get('winning_trades', 0)
 
         avg_return = sum(total_returns) / len(total_returns) if total_returns else 0.0
         avg_weekly = (avg_return / DAYS_BACK) * 7
@@ -262,8 +266,9 @@ def main():
             pair_results[pair] = results
 
             if results:
-                total_ret = results.get('total_return_pct', 0.0)
-                trades = results.get('total_trades', 0)
+                metrics = results.get('metrics', {})
+                total_ret = metrics.get('total_return_pct', 0.0)
+                trades = metrics.get('total_trades', 0)
                 print(f"✓ {format_pct(total_ret)} ({trades} trades)")
             else:
                 print("✗ Failed")
