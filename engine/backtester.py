@@ -219,34 +219,35 @@ class Backtester:
                         self.state.stop_loss = None
                         self.state.take_profit = None
 
-            # Check for entry signals if flat
-            if self.account.position_size == 0:
-                entry_orders = self.strategy.on_bar(bar, idx, self.state, context)
+            # Check for entry signals
+            # Note: Always call on_bar (not just when flat) to support DCA/averaging strategies
+            entry_orders = self.strategy.on_bar(bar, idx, self.state, context)
 
-                for order in entry_orders:
-                    executed_order = self.execution_engine.execute_order(
-                        order,
-                        bar_dict,
-                        self.account.position_size
+            for order in entry_orders:
+                executed_order = self.execution_engine.execute_order(
+                    order,
+                    bar_dict,
+                    self.account.position_size
+                )
+
+                if executed_order.is_filled:
+                    # Open position with leverage applied to size
+                    # With 10x leverage, position size is 10x larger
+                    leveraged_size = executed_order.filled_quantity * self.leverage
+
+                    self.account.open_position(
+                        symbol=self.symbol,
+                        side='buy' if executed_order.side.value == 'buy' else 'sell',
+                        size=leveraged_size,  # Size multiplied by leverage
+                        entry_price=executed_order.filled_price,
+                        leverage=self.leverage,
+                        fee=executed_order.fee,
+                        timestamp=bar_dict['timestamp']
                     )
 
-                    if executed_order.is_filled:
-                        # Open position with leverage applied to size
-                        # With 10x leverage, position size is 10x larger
-                        leveraged_size = executed_order.filled_quantity * self.leverage
-
-                        self.account.open_position(
-                            symbol=self.symbol,
-                            side='buy' if executed_order.side.value == 'buy' else 'sell',
-                            size=leveraged_size,  # Size multiplied by leverage
-                            entry_price=executed_order.filled_price,
-                            leverage=self.leverage,
-                            fee=executed_order.fee,
-                            timestamp=bar_dict['timestamp']
-                        )
-
-                        # Update state
-                        self.state.position_size = self.account.position_size
+                    # Update state (for single-entry strategies)
+                    self.state.position_size = self.account.position_size
+                    if self.state.entry_price is None:  # Only set on first entry
                         self.state.entry_price = executed_order.filled_price
                         self.state.entry_bar_index = idx
 
