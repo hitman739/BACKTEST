@@ -541,6 +541,79 @@ body {
   white-space: nowrap;
 }
 
+/* ========== PAPER TRADING STATS ========== */
+.paper-stats {
+  margin-top: 20px;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+}
+
+.theme-dark .paper-stats {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.paper-stats h3 {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  text-align: center;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.stat-box {
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.theme-dark .stat-box {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.stat-label {
+  font-size: 12px;
+  opacity: 0.7;
+  font-weight: 600;
+}
+
+.stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  font-family: monospace;
+}
+
+.stat-value.positive {
+  color: #2ecc71;
+}
+
+.stat-value.negative {
+  color: #e74c3c;
+}
+
+.positions-info {
+  text-align: center;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.theme-dark .positions-info {
+  background: rgba(255, 255, 255, 0.05);
+}
+
 /* Responsive */
 @media (max-width: 600px) {
   .theme-buttons {
@@ -557,5 +630,9 @@ body {
 
   .theme-name {
     font-size: 10px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
   }
 }

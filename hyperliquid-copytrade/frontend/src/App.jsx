@@ -9,6 +9,10 @@ function App() {
   const [targetWallet, setTargetWallet] = useState('')
   const [network, setNetwork] = useState('testnet')
 
+  // Paper trading
+  const [paperMode, setPaperMode] = useState(true) // Default to paper mode for safety
+  const [initialBalance, setInitialBalance] = useState(10000)
+
   // App state
   const [isRunning, setIsRunning] = useState(false)
   const [status, setStatus] = useState(null)
@@ -40,19 +44,28 @@ function App() {
   }
 
   const handleStart = async () => {
-    if (!apiKey || !apiSecret || !targetWallet) {
-      setError('Por favor completa todos los campos')
-      return
-    }
-
-    if (!apiSecret.startsWith('0x')) {
-      setError('API Secret debe comenzar con 0x')
+    // Validation
+    if (!targetWallet) {
+      setError('Por favor ingresa la Target Wallet')
       return
     }
 
     if (!targetWallet.startsWith('0x')) {
       setError('Target Wallet debe comenzar con 0x')
       return
+    }
+
+    // Real trading requires API credentials
+    if (!paperMode) {
+      if (!apiKey || !apiSecret) {
+        setError('API Key y Secret son requeridos para trading real')
+        return
+      }
+
+      if (!apiSecret.startsWith('0x')) {
+        setError('API Secret debe comenzar con 0x')
+        return
+      }
     }
 
     setLoading(true)
@@ -69,7 +82,9 @@ function App() {
           api_key: apiKey,
           api_secret: apiSecret,
           target_wallet: targetWallet,
-          testnet: network === 'testnet'
+          testnet: network === 'testnet',
+          paper_mode: paperMode,
+          initial_balance: initialBalance
         })
       })
 
@@ -77,10 +92,14 @@ function App() {
 
       if (response.ok) {
         setIsRunning(true)
-        setSuccess('CopyTrading iniciado correctamente!')
+        if (paperMode) {
+          setSuccess(`Paper Trading iniciado con $${initialBalance.toLocaleString()}!`)
+        } else {
+          setSuccess('CopyTrading Real iniciado!')
+        }
         await checkStatus()
       } else {
-        setError(data.detail || data.message || 'Error al iniciar CopyTrading')
+        setError(data.detail || data.message || 'Error al iniciar')
       }
     } catch (err) {
       setError(`Error de conexión: ${err.message}`)
@@ -133,41 +152,113 @@ function App() {
 
         {/* Running Indicator */}
         {isRunning && status && (
-          <div className="running-indicator">
-            <div className="pulse"></div>
-            <div className="running-info">
-              <h3>CopyTrading Activo</h3>
-              <p>Target: {status.target_wallet?.slice(0, 10)}...</p>
-              <p>Network: {status.testnet ? 'Testnet' : 'Mainnet'}</p>
-              {status.trades_copied !== undefined && (
-                <p>Trades copiados: {status.trades_copied}</p>
-              )}
+          <div>
+            <div className="running-indicator">
+              <div className="pulse"></div>
+              <div className="running-info">
+                <h3>{status.paper_mode ? 'Paper Trading Activo' : 'CopyTrading Real Activo'}</h3>
+                <p>Target: {status.target_wallet?.slice(0, 10)}...</p>
+                <p>Trades: {status.trades_copied}</p>
+              </div>
             </div>
+
+            {/* Paper Trading Stats Dashboard */}
+            {status.paper_mode && (
+              <div className="paper-stats">
+                <h3>📊 Estadísticas</h3>
+                <div className="stats-grid">
+                  <div className="stat-box">
+                    <span className="stat-label">Balance</span>
+                    <span className="stat-value">${status.current_balance?.toFixed(2)}</span>
+                  </div>
+                  <div className="stat-box">
+                    <span className="stat-label">PnL Total</span>
+                    <span className={`stat-value ${status.total_pnl >= 0 ? 'positive' : 'negative'}`}>
+                      ${status.total_pnl?.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="stat-box">
+                    <span className="stat-label">ROI</span>
+                    <span className={`stat-value ${status.roi >= 0 ? 'positive' : 'negative'}`}>
+                      {status.roi?.toFixed(2)}%
+                    </span>
+                  </div>
+                  <div className="stat-box">
+                    <span className="stat-label">Fees Pagadas</span>
+                    <span className="stat-value">${status.total_fees_paid?.toFixed(2)}</span>
+                  </div>
+                </div>
+                {status.open_positions > 0 && (
+                  <div className="positions-info">
+                    <p><strong>Posiciones abiertas:</strong> {status.open_positions}</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
         {/* Form */}
         {!isRunning ? (
           <div>
+            {/* Paper / Real Toggle */}
             <div className="form-group">
-              <label>API Key</label>
-              <input
-                type="text"
-                placeholder="Tu Hyperliquid API Key"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-              />
+              <label>Modo de Trading</label>
+              <div className="network-selector">
+                <button
+                  className={`network-btn ${paperMode ? 'active' : ''}`}
+                  onClick={() => setPaperMode(true)}
+                >
+                  📝 Paper (Sin riesgo)
+                </button>
+                <button
+                  className={`network-btn ${!paperMode ? 'active' : ''}`}
+                  onClick={() => setPaperMode(false)}
+                >
+                  💰 Real
+                </button>
+              </div>
             </div>
 
-            <div className="form-group">
-              <label>API Secret (Private Key)</label>
-              <input
-                type="password"
-                placeholder="0x..."
-                value={apiSecret}
-                onChange={(e) => setApiSecret(e.target.value)}
-              />
-            </div>
+            {/* Paper Trading Initial Balance */}
+            {paperMode && (
+              <div className="form-group">
+                <label>Balance Inicial (Paper)</label>
+                <input
+                  type="number"
+                  placeholder="10000"
+                  value={initialBalance}
+                  onChange={(e) => setInitialBalance(Number(e.target.value))}
+                  min="100"
+                  step="100"
+                />
+              </div>
+            )}
+
+            {/* API Credentials (only for real trading) */}
+            {!paperMode && (
+              <>
+                <div className="form-group">
+                  <label>API Key</label>
+                  <input
+                    type="text"
+                    placeholder="Tu Hyperliquid API Key"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>API Secret (Private Key)</label>
+                  <input
+                    type="password"
+                    placeholder="0x..."
+                    value={apiSecret}
+                    onChange={(e) => setApiSecret(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
 
             <div className="form-group">
               <label>Target Wallet</label>
