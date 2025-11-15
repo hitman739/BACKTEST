@@ -15,6 +15,7 @@ from enum import Enum
 import pandas as pd
 import numpy as np
 from datetime import datetime, time
+import uuid
 
 from engine.strategy import BaseStrategy, StrategyContext, StrategyState
 from engine.orders import Order, OrderType, OrderSide
@@ -306,6 +307,7 @@ class MeanReversionEngine(BaseStrategy):
                     # Create order
                     order_side = OrderSide.BUY if side == 'long' else OrderSide.SELL
                     order = Order(
+                        order_id=str(uuid.uuid4()),
                         symbol=context.symbol,
                         side=order_side,
                         order_type=OrderType.MARKET,
@@ -379,6 +381,7 @@ class MeanReversionEngine(BaseStrategy):
                 total_size = state.long_basket.total_size
                 if total_size > 0:
                     orders.append(Order(
+                        order_id=str(uuid.uuid4()),
                         symbol=context.symbol,
                         side=OrderSide.SELL,
                         order_type=OrderType.MARKET,
@@ -401,6 +404,7 @@ class MeanReversionEngine(BaseStrategy):
                 total_size = state.short_basket.total_size
                 if total_size > 0:
                     orders.append(Order(
+                        order_id=str(uuid.uuid4()),
                         symbol=context.symbol,
                         side=OrderSide.BUY,
                         order_type=OrderType.MARKET,
