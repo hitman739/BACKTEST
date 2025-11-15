@@ -231,9 +231,13 @@ class MeanReversionEngine(BaseStrategy):
             return []
 
         # Get current distance from mean
-        distance_pct = bar['distance_pct']
+        distance_pct = bar.get('distance_pct')
         current_price = bar['close']
-        mean_price = bar['mean_price']
+        mean_price = bar.get('mean_price')
+
+        # Skip if distance_pct or mean_price is NaN (indicators still initializing)
+        if pd.isna(distance_pct) or pd.isna(mean_price):
+            return []
 
         # Check for long entries (price below mean)
         if distance_pct < 0 and not self._is_side_blocked('long', bar, state):
@@ -372,7 +376,11 @@ class MeanReversionEngine(BaseStrategy):
         orders = []
 
         current_price = bar['close']
-        distance_pct = bar['distance_pct']
+        distance_pct = bar.get('distance_pct')
+
+        # Skip if distance_pct is NaN
+        if pd.isna(distance_pct):
+            return []
 
         # Check long basket exits
         if state.long_basket.num_layers > 0:
@@ -469,23 +477,21 @@ class MeanReversionEngine(BaseStrategy):
     def _check_regime_filters(self, bar: pd.Series) -> bool:
         """Check if market regime is favorable"""
         # ATR ratio filter
-        atr_ratio = bar.get('atr_ratio', 1.0)
-        if pd.isna(atr_ratio):
-            return False
-        if atr_ratio < self.min_atr_ratio or atr_ratio > self.max_atr_ratio:
-            return False
+        atr_ratio = bar.get('atr_ratio')
+        if pd.notna(atr_ratio):  # Only check if value exists
+            if atr_ratio < self.min_atr_ratio or atr_ratio > self.max_atr_ratio:
+                return False
 
         # Volume ratio filter
-        vol_ratio = bar.get('vol_ratio', 1.0)
-        if pd.isna(vol_ratio):
-            return False
-        if vol_ratio < self.min_vol_ratio or vol_ratio > self.max_vol_ratio:
-            return False
+        vol_ratio = bar.get('vol_ratio')
+        if pd.notna(vol_ratio):  # Only check if value exists
+            if vol_ratio < self.min_vol_ratio or vol_ratio > self.max_vol_ratio:
+                return False
 
         # Daily range filter
         if self.min_daily_range_pct is not None:
             daily_range = bar.get('daily_range_pct', 0)
-            if daily_range < self.min_daily_range_pct:
+            if pd.notna(daily_range) and daily_range < self.min_daily_range_pct:
                 return False
 
         return True
