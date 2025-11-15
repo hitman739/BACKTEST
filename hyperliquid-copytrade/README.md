@@ -33,7 +33,32 @@ Instead of copying the exact trade size, this bot copies the **percentage of mar
 - Hyperliquid account with API credentials
 - Mac (tested on macOS)
 
-## Installation (Mac)
+## Quick Start (4 comandos)
+
+```bash
+# 1. Clonar o pull del repo
+git pull origin claude/hola-01MHMV9SsYEYGhoohLKGaXA8
+
+# 2. Navegar a la carpeta
+cd hyperliquid-copytrade
+
+# 3. Instalar todo (backend + frontend)
+./setup.sh
+
+# 4a. En Terminal 1 - Ejecutar backend
+./start-backend.sh
+
+# 4b. En Terminal 2 - Ejecutar frontend
+./start-frontend.sh
+```
+
+Abre el navegador en: `http://localhost:5173`
+
+---
+
+## Installation Manual (alternativa)
+
+Si prefieres instalar manualmente:
 
 ### 1. Clone the repository
 

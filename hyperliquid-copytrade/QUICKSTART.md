@@ -1,6 +1,6 @@
-# Hyperliquid CopyTrade - Quick Start (5 minutes)
+# Hyperliquid CopyTrade - Quick Start (3 minutos)
 
-Get up and running in 5 minutes on your Mac!
+Get up and running in 3 minutes on your Mac!
 
 ## Prerequisites
 
@@ -12,7 +12,29 @@ python3 --version
 node --version
 ```
 
-## Step 1: Install (2 minutes)
+## ⚡ SUPER RÁPIDO (3 comandos)
+
+```bash
+# 1. Ir a la carpeta
+cd hyperliquid-copytrade
+
+# 2. Instalar todo (backend + frontend)
+./setup.sh
+
+# 3a. Terminal 1 - Iniciar backend
+./start-backend.sh
+
+# 3b. Terminal 2 - Iniciar frontend
+./start-frontend.sh
+```
+
+Abre `http://localhost:5173` y listo! 🚀
+
+---
+
+## Método Manual (alternativa)
+
+### Step 1: Install (2 minutes)
 
 ```bash
 # Navigate to project
@@ -31,9 +53,9 @@ npm install
 cd ..
 ```
 
-## Step 2: Start Servers (1 minute)
+### Step 2: Start Servers (1 minute)
 
-### Terminal 1 - Backend
+**Terminal 1 - Backend**
 ```bash
 cd backend
 source venv/bin/activate
@@ -46,7 +68,7 @@ INFO:     Started server process
 INFO:     Uvicorn running on http://0.0.0.0:8000
 ```
 
-### Terminal 2 - Frontend
+**Terminal 2 - Frontend**
 ```bash
 cd frontend
 npm run dev
