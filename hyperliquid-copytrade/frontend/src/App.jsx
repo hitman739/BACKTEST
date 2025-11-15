@@ -7,7 +7,7 @@ function App() {
   const [apiKey, setApiKey] = useState('')
   const [apiSecret, setApiSecret] = useState('')
   const [targetWallet, setTargetWallet] = useState('')
-  const [network, setNetwork] = useState('testnet') // 'testnet' or 'mainnet'
+  const [network, setNetwork] = useState('testnet')
 
   // App state
   const [isRunning, setIsRunning] = useState(false)
@@ -15,6 +15,9 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
+
+  // Theme selection
+  const [theme, setTheme] = useState('purple') // purple, dark, minimal, green, blue
 
   // Check status on mount and every 5 seconds
   useEffect(() => {
@@ -37,7 +40,6 @@ function App() {
   }
 
   const handleStart = async () => {
-    // Validation
     if (!apiKey || !apiSecret || !targetWallet) {
       setError('Por favor completa todos los campos')
       return
@@ -113,133 +115,161 @@ function App() {
     }
   }
 
+  const themes = {
+    purple: { name: '🟣 Purple', icon: '🎨' },
+    dark: { name: '⚫ Dark', icon: '🌙' },
+    minimal: { name: '⚪ Minimal', icon: '✨' },
+    green: { name: '🟢 Matrix', icon: '💰' },
+    blue: { name: '🔵 Ocean', icon: '🌊' }
+  }
+
   return (
-    <div className="container">
-      <div className="header">
-        <h1>Hyperliquid CopyTrading</h1>
-        <p>Copia trades automáticamente usando % de margen</p>
-      </div>
-
-      {/* Running Indicator */}
-      {isRunning && status && (
-        <div className="running-indicator">
-          <div className="pulse"></div>
-          <div className="running-info">
-            <h3>CopyTrading Activo</h3>
-            <p>Target: {status.target_wallet?.slice(0, 10)}...</p>
-            <p>Network: {status.testnet ? 'Testnet' : 'Mainnet'}</p>
-            {status.trades_copied !== undefined && (
-              <p>Trades copiados: {status.trades_copied}</p>
-            )}
-          </div>
+    <div className={`app-wrapper theme-${theme}`}>
+      <div className="container">
+        <div className="header">
+          <h1>Hyperliquid CopyTrading</h1>
+          <p>Copia trades automáticamente usando % de margen</p>
         </div>
-      )}
 
-      {/* Form */}
-      {!isRunning ? (
-        <div>
-          <div className="form-group">
-            <label>API Key</label>
-            <input
-              type="text"
-              placeholder="Tu Hyperliquid API Key"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>API Secret (Private Key)</label>
-            <input
-              type="password"
-              placeholder="0x..."
-              value={apiSecret}
-              onChange={(e) => setApiSecret(e.target.value)}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Target Wallet</label>
-            <input
-              type="text"
-              placeholder="0x... (wallet del trader a copiar)"
-              value={targetWallet}
-              onChange={(e) => setTargetWallet(e.target.value)}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Network</label>
-            <div className="network-selector">
-              <button
-                className={`network-btn ${network === 'testnet' ? 'active' : ''}`}
-                onClick={() => setNetwork('testnet')}
-              >
-                Testnet
-              </button>
-              <button
-                className={`network-btn ${network === 'mainnet' ? 'active' : ''}`}
-                onClick={() => setNetwork('mainnet')}
-              >
-                Mainnet
-              </button>
+        {/* Running Indicator */}
+        {isRunning && status && (
+          <div className="running-indicator">
+            <div className="pulse"></div>
+            <div className="running-info">
+              <h3>CopyTrading Activo</h3>
+              <p>Target: {status.target_wallet?.slice(0, 10)}...</p>
+              <p>Network: {status.testnet ? 'Testnet' : 'Mainnet'}</p>
+              {status.trades_copied !== undefined && (
+                <p>Trades copiados: {status.trades_copied}</p>
+              )}
             </div>
           </div>
+        )}
 
+        {/* Form */}
+        {!isRunning ? (
+          <div>
+            <div className="form-group">
+              <label>API Key</label>
+              <input
+                type="text"
+                placeholder="Tu Hyperliquid API Key"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>API Secret (Private Key)</label>
+              <input
+                type="password"
+                placeholder="0x..."
+                value={apiSecret}
+                onChange={(e) => setApiSecret(e.target.value)}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Target Wallet</label>
+              <input
+                type="text"
+                placeholder="0x... (wallet del trader a copiar)"
+                value={targetWallet}
+                onChange={(e) => setTargetWallet(e.target.value)}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Network</label>
+              <div className="network-selector">
+                <button
+                  className={`network-btn ${network === 'testnet' ? 'active' : ''}`}
+                  onClick={() => setNetwork('testnet')}
+                >
+                  Testnet
+                </button>
+                <button
+                  className={`network-btn ${network === 'mainnet' ? 'active' : ''}`}
+                  onClick={() => setNetwork('mainnet')}
+                >
+                  Mainnet
+                </button>
+              </div>
+            </div>
+
+            <button
+              className="btn btn-primary"
+              onClick={handleStart}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <span className="loading"></span> Iniciando...
+                </>
+              ) : (
+                'Start CopyTrading'
+              )}
+            </button>
+          </div>
+        ) : (
           <button
-            className="btn btn-primary"
-            onClick={handleStart}
+            className="btn btn-danger"
+            onClick={handleStop}
             disabled={loading}
           >
             {loading ? (
               <>
-                <span className="loading"></span> Iniciando...
+                <span className="loading"></span> Deteniendo...
               </>
             ) : (
-              'Start CopyTrading'
+              'Stop CopyTrading'
             )}
           </button>
-        </div>
-      ) : (
-        <button
-          className="btn btn-danger"
-          onClick={handleStop}
-          disabled={loading}
-        >
-          {loading ? (
-            <>
-              <span className="loading"></span> Deteniendo...
-            </>
-          ) : (
-            'Stop CopyTrading'
-          )}
-        </button>
-      )}
+        )}
 
-      {/* Status Messages */}
-      {error && (
-        <div className="status-box error">
-          <strong>Error:</strong> {error}
-        </div>
-      )}
+        {/* Status Messages */}
+        {error && (
+          <div className="status-box error">
+            <strong>Error:</strong> {error}
+          </div>
+        )}
 
-      {success && (
-        <div className="status-box success">
-          <strong>Éxito:</strong> {success}
-        </div>
-      )}
+        {success && (
+          <div className="status-box success">
+            <strong>Éxito:</strong> {success}
+          </div>
+        )}
 
-      {/* Info Box */}
-      {!isRunning && !error && !success && (
-        <div className="status-box warning">
-          <strong>⚠️ Importante:</strong>
-          <ul style={{ marginTop: '8px', marginLeft: '20px' }}>
-            <li>Comienza siempre en Testnet</li>
-            <li>API Key solo con permisos de trading (NO withdraw)</li>
-            <li>El bot copia % de margen usado, no el tamaño nominal</li>
-          </ul>
+        {/* Info Box */}
+        {!isRunning && !error && !success && (
+          <div className="status-box warning">
+            <strong>⚠️ Importante:</strong>
+            <ul style={{ marginTop: '8px', marginLeft: '20px' }}>
+              <li>Comienza siempre en Testnet</li>
+              <li>API Key solo con permisos de trading (NO withdraw)</li>
+              <li>El bot copia % de margen usado, no el tamaño nominal</li>
+            </ul>
+          </div>
+        )}
+
+        {/* Theme Selector */}
+        <div className="theme-selector">
+          <p className="theme-label">Elige tu tema:</p>
+          <div className="theme-buttons">
+            {Object.keys(themes).map((themeName) => (
+              <button
+                key={themeName}
+                className={`theme-btn ${theme === themeName ? 'active' : ''}`}
+                onClick={() => setTheme(themeName)}
+                title={themes[themeName].name}
+              >
+                <span className="theme-icon">{themes[themeName].icon}</span>
+                <span className="theme-name">{themes[themeName].name}</span>
+              </button>
+            ))}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }
