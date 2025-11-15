@@ -28,7 +28,8 @@ app.add_middleware(
 
 # Global managers
 copy_manager: Optional[CopyTradeManager] = None
-paper_manager: Optional[PaperTradingManager] = None
+paper_managers: dict[str, PaperTradingManager] = {}  # Multiple paper trading sessions
+MAX_PAPER_WALLETS = 15  # Maximum number of wallets to test simultaneously
 
 
 class StartCopyRequest(BaseModel):
@@ -38,6 +39,12 @@ class StartCopyRequest(BaseModel):
     testnet: bool = True
     paper_mode: bool = False  # Paper trading mode (no real money)
     initial_balance: float = 10000.0  # For paper trading
+
+
+class AddWalletRequest(BaseModel):
+    target_wallet: str
+    testnet: bool = True
+    initial_balance: float = 10000.0
 
 
 class ConnectionManager:
@@ -195,21 +202,29 @@ async def stop_copy():
 @app.get("/status")
 async def get_status():
     """Get current copy trading status"""
-    # Check paper trading first
-    if paper_manager:
-        stats = paper_manager.get_stats()
+    # Check if multi-wallet paper trading
+    if paper_managers:
+        wallets = []
+        for wallet_addr, manager in paper_managers.items():
+            stats = manager.get_stats()
+            wallets.append({
+                "wallet": wallet_addr,
+                "is_running": stats["is_running"],
+                "initial_balance": stats["initial_balance"],
+                "current_balance": stats["current_balance"],
+                "total_pnl": stats["total_pnl"],
+                "total_fees_paid": stats["total_fees_paid"],
+                "roi": stats["roi"],
+                "trades_copied": stats["trades_copied"],
+                "open_positions": stats["open_positions"]
+            })
+
         return {
-            "active": stats["is_running"],
+            "active": True,
             "paper_mode": True,
-            "target_wallet": stats["target_wallet"],
-            "trades_copied": stats["trades_copied"],
-            "initial_balance": stats["initial_balance"],
-            "current_balance": stats["current_balance"],
-            "total_pnl": stats["total_pnl"],
-            "total_fees_paid": stats["total_fees_paid"],
-            "roi": stats["roi"],
-            "open_positions": stats["open_positions"],
-            "open_positions_list": stats["open_positions_list"]
+            "multi_wallet": True,
+            "wallets": wallets,
+            "total_wallets": len(wallets)
         }
 
     # Check real copy trading
@@ -217,6 +232,7 @@ async def get_status():
         return {
             "active": copy_manager.is_running,
             "paper_mode": False,
+            "multi_wallet": False,
             "target_wallet": copy_manager.target_wallet,
             "trades_copied": copy_manager.trades_copied,
             "testnet": copy_manager.testnet
@@ -226,9 +242,127 @@ async def get_status():
     return {
         "active": False,
         "paper_mode": False,
-        "target_wallet": None,
-        "trades_copied": 0
+        "multi_wallet": False,
+        "wallets": []
     }
+
+
+@app.post("/add-wallet")
+async def add_wallet(request: AddWalletRequest):
+    """Add a wallet to paper trade testing"""
+    global paper_managers
+
+    try:
+        # Validate wallet
+        if not request.target_wallet.startswith("0x"):
+            raise HTTPException(status_code=400, detail="Wallet must start with 0x")
+
+        # Check if already exists
+        if request.target_wallet in paper_managers:
+            raise HTTPException(status_code=400, detail="Wallet already being tested")
+
+        # Check limit
+        if len(paper_managers) >= MAX_PAPER_WALLETS:
+            raise HTTPException(status_code=400, detail=f"Maximum {MAX_PAPER_WALLETS} wallets allowed")
+
+        # Create new paper trading manager
+        manager = PaperTradingManager(
+            target_wallet=request.target_wallet,
+            initial_balance=request.initial_balance,
+            testnet=request.testnet,
+            callback=broadcast_update
+        )
+
+        # Start monitoring in background
+        asyncio.create_task(manager.start())
+
+        # Add to dict
+        paper_managers[request.target_wallet] = manager
+
+        await broadcast_update({
+            "type": "wallet_added",
+            "wallet": request.target_wallet,
+            "initial_balance": request.initial_balance,
+            "total_wallets": len(paper_managers)
+        })
+
+        return {
+            "status": "added",
+            "wallet": request.target_wallet,
+            "initial_balance": request.initial_balance,
+            "total_wallets": len(paper_managers)
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error adding wallet: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/remove-wallet/{wallet}")
+async def remove_wallet(wallet: str):
+    """Remove a wallet from paper trading"""
+    global paper_managers
+
+    try:
+        if wallet not in paper_managers:
+            raise HTTPException(status_code=404, detail="Wallet not found")
+
+        # Stop manager
+        manager = paper_managers[wallet]
+        await manager.stop()
+
+        # Remove from dict
+        del paper_managers[wallet]
+
+        await broadcast_update({
+            "type": "wallet_removed",
+            "wallet": wallet,
+            "total_wallets": len(paper_managers)
+        })
+
+        return {
+            "status": "removed",
+            "wallet": wallet,
+            "remaining_wallets": len(paper_managers)
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error removing wallet: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/stop-all")
+async def stop_all_wallets():
+    """Stop all paper trading wallets"""
+    global paper_managers
+
+    try:
+        count = len(paper_managers)
+
+        # Stop all managers
+        for manager in paper_managers.values():
+            await manager.stop()
+
+        # Clear dict
+        paper_managers.clear()
+
+        await broadcast_update({
+            "type": "all_stopped",
+            "message": f"Stopped {count} wallets"
+        })
+
+        return {
+            "status": "stopped",
+            "wallets_stopped": count
+        }
+
+    except Exception as e:
+        logger.error(f"Error stopping all wallets: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.websocket("/ws")

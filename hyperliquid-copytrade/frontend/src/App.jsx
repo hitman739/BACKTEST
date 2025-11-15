@@ -13,6 +13,11 @@ function App() {
   const [paperMode, setPaperMode] = useState(true) // Default to paper mode for safety
   const [initialBalance, setInitialBalance] = useState(10000)
 
+  // Multi-wallet testing
+  const [multiWalletMode, setMultiWalletMode] = useState(false)
+  const [walletToAdd, setWalletToAdd] = useState('')
+  const [wallets, setWallets] = useState([]) // List of wallets being tested
+
   // App state
   const [isRunning, setIsRunning] = useState(false)
   const [status, setStatus] = useState(null)
@@ -37,9 +42,114 @@ function App() {
         const data = await response.json()
         setStatus(data)
         setIsRunning(data.active || false)
+
+        // Update wallets list if multi-wallet mode
+        if (data.multi_wallet && data.wallets) {
+          setWallets(data.wallets)
+          setMultiWalletMode(true)
+        }
       }
     } catch (err) {
       console.error('Error checking status:', err)
+    }
+  }
+
+  const handleAddWallet = async () => {
+    if (!walletToAdd) {
+      setError('Ingresa una wallet address')
+      return
+    }
+
+    if (!walletToAdd.startsWith('0x')) {
+      setError('La wallet debe empezar con 0x')
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+    setSuccess(null)
+
+    try {
+      const response = await fetch(`${API_URL}/add-wallet`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          target_wallet: walletToAdd,
+          testnet: network === 'testnet',
+          initial_balance: initialBalance
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setSuccess(`Wallet añadida: ${walletToAdd.slice(0, 10)}...`)
+        setWalletToAdd('')
+        setMultiWalletMode(true)
+        await checkStatus()
+      } else {
+        setError(data.detail || 'Error al añadir wallet')
+      }
+    } catch (err) {
+      setError(`Error: ${err.message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRemoveWallet = async (wallet) => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch(`${API_URL}/remove-wallet/${wallet}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        setSuccess(`Wallet removida: ${wallet.slice(0, 10)}...`)
+        await checkStatus()
+
+        // If no more wallets, exit multi-wallet mode
+        if (wallets.length <= 1) {
+          setMultiWalletMode(false)
+          setWallets([])
+        }
+      } else {
+        const data = await response.json()
+        setError(data.detail || 'Error al remover wallet')
+      }
+    } catch (err) {
+      setError(`Error: ${err.message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleStopAll = async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch(`${API_URL}/stop-all`, {
+        method: 'POST'
+      })
+
+      if (response.ok) {
+        setSuccess('Todas las wallets detenidas')
+        setMultiWalletMode(false)
+        setWallets([])
+        await checkStatus()
+      } else {
+        const data = await response.json()
+        setError(data.detail || 'Error al detener wallets')
+      }
+    } catch (err) {
+      setError(`Error: ${err.message}`)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -150,8 +260,76 @@ function App() {
           <p>Copia trades automáticamente usando % de margen</p>
         </div>
 
-        {/* Running Indicator */}
-        {isRunning && status && (
+        {/* Multi-Wallet Testing Mode */}
+        {multiWalletMode && wallets.length > 0 && (
+          <div>
+            <div className="running-indicator">
+              <div className="pulse"></div>
+              <div className="running-info">
+                <h3>🔍 Testeando {wallets.length} Wallet{wallets.length > 1 ? 's' : ''}</h3>
+                <p>Comparando performance en tiempo real</p>
+              </div>
+            </div>
+
+            {/* Wallets Comparison Table */}
+            <div className="wallets-table-container">
+              <div className="table-header">
+                <h3>📊 Comparación de Traders</h3>
+                <button onClick={handleStopAll} className="btn btn-danger btn-small">
+                  Stop All
+                </button>
+              </div>
+
+              <div className="wallets-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Wallet</th>
+                      <th>Balance</th>
+                      <th>PnL</th>
+                      <th>ROI</th>
+                      <th>Fees</th>
+                      <th>Trades</th>
+                      <th>Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {wallets
+                      .sort((a, b) => b.roi - a.roi) // Sort by ROI descending
+                      .map((wallet) => (
+                        <tr key={wallet.wallet}>
+                          <td className="wallet-cell" title={wallet.wallet}>
+                            {wallet.wallet.slice(0, 6)}...{wallet.wallet.slice(-4)}
+                          </td>
+                          <td>${wallet.current_balance?.toFixed(2)}</td>
+                          <td className={wallet.total_pnl >= 0 ? 'positive' : 'negative'}>
+                            ${wallet.total_pnl?.toFixed(2)}
+                          </td>
+                          <td className={wallet.roi >= 0 ? 'positive-bold' : 'negative-bold'}>
+                            {wallet.roi?.toFixed(2)}%
+                          </td>
+                          <td>${wallet.total_fees_paid?.toFixed(2)}</td>
+                          <td>{wallet.trades_copied}</td>
+                          <td>
+                            <button
+                              onClick={() => handleRemoveWallet(wallet.wallet)}
+                              className="btn-remove"
+                              disabled={loading}
+                            >
+                              ✕
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Single Wallet Mode (original) */}
+        {!multiWalletMode && isRunning && status && (
           <div>
             <div className="running-indicator">
               <div className="pulse"></div>
@@ -199,7 +377,7 @@ function App() {
         )}
 
         {/* Form */}
-        {!isRunning ? (
+        {!isRunning && !multiWalletMode ? (
           <div>
             {/* Paper / Real Toggle */}
             <div className="form-group">
@@ -220,8 +398,29 @@ function App() {
               </div>
             </div>
 
-            {/* Paper Trading Initial Balance */}
+            {/* Multi-Wallet Toggle (only for paper mode) */}
             {paperMode && (
+              <div className="form-group">
+                <label>¿Cuántas wallets quieres testear?</label>
+                <div className="network-selector">
+                  <button
+                    className={`network-btn ${!multiWalletMode ? 'active' : ''}`}
+                    onClick={() => setMultiWalletMode(false)}
+                  >
+                    1 Wallet
+                  </button>
+                  <button
+                    className={`network-btn ${multiWalletMode ? 'active' : ''}`}
+                    onClick={() => setMultiWalletMode(true)}
+                  >
+                    🔍 Múltiples (hasta 15)
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Paper Trading Initial Balance */}
+            {paperMode && !multiWalletMode && (
               <div className="form-group">
                 <label>Balance Inicial (Paper)</label>
                 <input
@@ -302,7 +501,7 @@ function App() {
               )}
             </button>
           </div>
-        ) : (
+        ) : !multiWalletMode && (
           <button
             className="btn btn-danger"
             onClick={handleStop}
@@ -316,6 +515,70 @@ function App() {
               'Stop CopyTrading'
             )}
           </button>
+        )}
+
+        {/* Multi-Wallet Add Form */}
+        {multiWalletMode && (
+          <div className="multi-wallet-form">
+            <h3>🔍 Añadir Wallets para Testear</h3>
+            <p className="subtitle">Puedes añadir hasta 15 wallets y compararlas en tiempo real</p>
+
+            <div className="add-wallet-row">
+              <div className="form-group-inline">
+                <label>Balance Inicial</label>
+                <input
+                  type="number"
+                  placeholder="10000"
+                  value={initialBalance}
+                  onChange={(e) => setInitialBalance(Number(e.target.value))}
+                  min="100"
+                  step="1000"
+                  className="balance-input"
+                />
+              </div>
+
+              <div className="form-group-inline flex-grow">
+                <label>Wallet Address</label>
+                <input
+                  type="text"
+                  placeholder="0x..."
+                  value={walletToAdd}
+                  onChange={(e) => setWalletToAdd(e.target.value)}
+                  className="wallet-input"
+                />
+              </div>
+
+              <button
+                onClick={handleAddWallet}
+                className="btn btn-primary btn-add"
+                disabled={loading || wallets.length >= 15}
+              >
+                {loading ? '...' : `+ Añadir (${wallets.length}/15)`}
+              </button>
+            </div>
+
+            <div className="network-selector-inline">
+              <label>Network:</label>
+              <button
+                className={`network-btn-small ${network === 'testnet' ? 'active' : ''}`}
+                onClick={() => setNetwork('testnet')}
+              >
+                Testnet
+              </button>
+              <button
+                className={`network-btn-small ${network === 'mainnet' ? 'active' : ''}`}
+                onClick={() => setNetwork('mainnet')}
+              >
+                Mainnet
+              </button>
+            </div>
+
+            {wallets.length === 0 && (
+              <div className="empty-state">
+                <p>👆 Añade wallets para comenzar a testear</p>
+              </div>
+            )}
+          </div>
         )}
 
         {/* Status Messages */}
