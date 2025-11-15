@@ -78,6 +78,16 @@ class Basket:
         pnl = self.calc_pnl(current_price)
         return (pnl / equity * 100) if equity > 0 else 0.0
 
+    def calc_pnl_pct_from_entry(self, current_price: float) -> float:
+        """Calculate PnL as % from average entry price (for stop loss logic)"""
+        if not self.layers or self.avg_entry_price == 0:
+            return 0.0
+
+        if self.side == 'long':
+            return ((current_price - self.avg_entry_price) / self.avg_entry_price) * 100
+        else:  # short
+            return ((self.avg_entry_price - current_price) / self.avg_entry_price) * 100
+
 
 @dataclass
 class MeanReversionState(StrategyState):
@@ -358,10 +368,8 @@ class MeanReversionEngine(BaseStrategy):
             return 0.0
 
         # Size based on risk
+        # NOTE: Do NOT apply leverage here - backtester applies it automatically
         size = layer_risk_amount / distance
-
-        # Apply leverage
-        size = size * context.leverage
 
         return size
 
@@ -453,15 +461,12 @@ class MeanReversionEngine(BaseStrategy):
         if pnl_pct >= self.target_pnl_pct:
             return True
 
-        # Exit condition 3: Hard stop distance
+        # Exit condition 3: Hard stop (based on basket PnL from entry, not distance from mean)
         if self.hard_stop_distance is not None:
-            if basket.side == 'long' and distance_pct <= -abs(self.hard_stop_distance):
+            basket_pnl_pct = basket.calc_pnl_pct_from_entry(current_price)
+            if basket_pnl_pct <= -abs(self.hard_stop_distance):
                 # Activate cooldown
-                state.blocked_sides['long'] = bar['timestamp']
-                return True
-            elif basket.side == 'short' and distance_pct >= abs(self.hard_stop_distance):
-                # Activate cooldown
-                state.blocked_sides['short'] = bar['timestamp']
+                state.blocked_sides[basket.side] = bar['timestamp']
                 return True
 
         # Exit condition 4: Max hold time
