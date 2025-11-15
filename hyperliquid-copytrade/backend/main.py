@@ -79,7 +79,7 @@ async def health():
     }
 
 
-@app.post("/start-copy")
+@app.post("/start")
 async def start_copy(request: StartCopyRequest):
     """Start copying trades from target wallet"""
     global copy_manager
@@ -118,7 +118,7 @@ async def start_copy(request: StartCopyRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/stop-copy")
+@app.post("/stop")
 async def stop_copy():
     """Stop copying trades"""
     global copy_manager
