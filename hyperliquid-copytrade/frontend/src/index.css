@@ -414,7 +414,7 @@ body {
 
 .traders-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
   gap: 1.5rem;
 }
 
@@ -474,6 +474,14 @@ body {
   font-size: 1.1rem;
   margin-bottom: 0.5rem;
   letter-spacing: 0.5px;
+  transition: all 0.3s;
+  user-select: none;
+}
+
+.wallet-address:hover {
+  color: var(--neon-pink);
+  text-shadow: 0 0 10px rgba(255, 62, 181, 0.5);
+  transform: translateX(2px);
 }
 
 .badges-row {

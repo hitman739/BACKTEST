@@ -16,6 +16,7 @@ function Simulator() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
+  const [copiedWallet, setCopiedWallet] = useState(null)
 
   useEffect(() => {
     checkStatus()
@@ -128,6 +129,16 @@ function Simulator() {
     }
   }
 
+  const handleCopyWallet = async (wallet) => {
+    try {
+      await navigator.clipboard.writeText(wallet)
+      setCopiedWallet(wallet)
+      setTimeout(() => setCopiedWallet(null), 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }
+
   return (
     <div className="page-container">
       <button className="back-button" onClick={() => navigate('/')}>
@@ -156,8 +167,13 @@ function Simulator() {
                   {/* Header */}
                   <div className="trader-card-header">
                     <div className="trader-wallet">
-                      <span className="wallet-address" title={wallet.wallet}>
-                        {wallet.wallet.slice(0, 8)}...{wallet.wallet.slice(-6)}
+                      <span
+                        className="wallet-address"
+                        title={copiedWallet === wallet.wallet ? 'Copied!' : `Click to copy: ${wallet.wallet}`}
+                        onClick={() => handleCopyWallet(wallet.wallet)}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        {copiedWallet === wallet.wallet ? '✓ Copied!' : `${wallet.wallet.slice(0, 8)}...${wallet.wallet.slice(-6)}`}
                       </span>
                       <div className="badges-row">
                         {wallet.fee_factor_ratio !== null && wallet.fee_factor_ratio !== undefined && (
