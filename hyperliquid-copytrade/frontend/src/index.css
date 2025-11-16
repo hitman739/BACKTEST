@@ -1,16 +1,19 @@
-/* Futuristic Neon Theme - Hyperliquid CopyTrading */
+/* Black & Yellow Theme - Hyperliquid CopyTrading */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-  /* Neon Colors */
-  --neon-yellow: #FFD34A;
-  --neon-pink: #FF3EB5;
-  --background-dark: #0a0e1a;
-  --background-card: rgba(15, 20, 25, 0.9);
+  /* Main Colors */
+  --yellow: #FFD700;
+  --yellow-bright: #FFED4E;
+  --yellow-dark: #B8860B;
+  --black: #000000;
+  --black-soft: #0a0a0a;
+  --black-light: #1a1a1a;
+  --background-card: rgba(10, 10, 10, 0.95);
   --text-primary: #e6e6e6;
-  --text-secondary: #8892b0;
-  --text-muted: #495670;
+  --text-secondary: #999999;
+  --text-muted: #666666;
 
   /* Status Colors */
   --success: #00ff88;
@@ -26,7 +29,7 @@
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: linear-gradient(135deg, #0a0e1a 0%, #0f1419 50%, #0a0e1a 100%);
+  background: linear-gradient(135deg, var(--black) 0%, var(--black-soft) 50%, var(--black) 100%);
   background-attachment: fixed;
   color: var(--text-primary);
   line-height: 1.6;
@@ -62,8 +65,8 @@ body {
 
 .back-button:hover {
   background: rgba(136, 146, 176, 0.2);
-  border-color: var(--neon-yellow);
-  color: var(--neon-yellow);
+  border-color: var(--yellow);
+  color: var(--yellow);
   box-shadow: 0 0 20px rgba(255, 211, 74, 0.2);
 }
 
@@ -76,7 +79,7 @@ body {
 .page-title {
   font-size: 3rem;
   font-weight: 700;
-  background: linear-gradient(90deg, var(--neon-yellow) 0%, var(--neon-pink) 100%);
+  background: linear-gradient(90deg, var(--yellow) 0%, var(--yellow) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -112,7 +115,7 @@ body {
 .card-title {
   font-size: 1.5rem;
   font-weight: 600;
-  color: var(--neon-yellow);
+  color: var(--yellow);
   margin-bottom: 0.5rem;
   letter-spacing: 1px;
 }
@@ -206,7 +209,7 @@ body {
 }
 
 .stat-item:hover {
-  border-color: var(--neon-yellow);
+  border-color: var(--yellow);
   box-shadow: 0 0 20px rgba(255, 211, 74, 0.2);
   transform: translateY(-5px);
 }
@@ -276,7 +279,7 @@ body {
 
 .form-input:focus {
   outline: none;
-  border-color: var(--neon-yellow);
+  border-color: var(--yellow);
   box-shadow: 0 0 20px rgba(255, 211, 74, 0.2);
 }
 
@@ -304,14 +307,14 @@ body {
 }
 
 .toggle-btn:hover {
-  border-color: var(--neon-yellow);
-  color: var(--neon-yellow);
+  border-color: var(--yellow);
+  color: var(--yellow);
 }
 
 .toggle-btn.active {
-  background: linear-gradient(135deg, rgba(255, 211, 74, 0.2) 0%, rgba(255, 62, 181, 0.2) 100%);
-  border-color: var(--neon-yellow);
-  color: var(--neon-yellow);
+  background: linear-gradient(135deg, rgba(255, 211, 74, 0.2) 0%, rgba(255, 215, 0, 0.2) 100%);
+  border-color: var(--yellow);
+  color: var(--yellow);
   box-shadow: 0 0 20px rgba(255, 211, 74, 0.3);
 }
 
@@ -334,7 +337,7 @@ body {
 }
 
 .start-button {
-  background: linear-gradient(135deg, var(--neon-yellow) 0%, var(--neon-pink) 100%);
+  background: linear-gradient(135deg, var(--yellow) 0%, var(--yellow) 100%);
   color: #0a0e1a;
   box-shadow: 0 0 30px rgba(255, 211, 74, 0.4);
 }
@@ -356,15 +359,15 @@ body {
 }
 
 .add-button {
-  background: linear-gradient(135deg, var(--neon-pink) 0%, var(--neon-yellow) 100%);
+  background: linear-gradient(135deg, var(--yellow) 0%, var(--yellow) 100%);
   color: #0a0e1a;
-  box-shadow: 0 0 30px rgba(255, 62, 181, 0.4);
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
   padding: 1rem 2rem;
   width: auto;
 }
 
 .add-button:hover {
-  box-shadow: 0 0 50px rgba(255, 62, 181, 0.6);
+  box-shadow: 0 0 50px rgba(255, 215, 0, 0.6);
   transform: translateY(-2px);
 }
 
@@ -407,7 +410,7 @@ body {
 
 .section-header h3 {
   font-size: 1.5rem;
-  color: var(--neon-pink);
+  color: var(--yellow);
   font-weight: 600;
   letter-spacing: 1px;
 }
@@ -421,7 +424,7 @@ body {
 /* Trader Card */
 .trader-card {
   background: var(--background-card);
-  border: 1px solid rgba(255, 62, 181, 0.2);
+  border: 1px solid rgba(255, 215, 0, 0.2);
   border-radius: 16px;
   padding: 1rem;
   backdrop-filter: blur(10px);
@@ -437,7 +440,7 @@ body {
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--neon-pink), var(--neon-yellow));
+  background: linear-gradient(90deg, var(--yellow), var(--yellow));
   opacity: 0;
   transition: opacity 0.3s;
 }
@@ -447,8 +450,8 @@ body {
 }
 
 .trader-card:hover {
-  border-color: rgba(255, 62, 181, 0.5);
-  box-shadow: 0 0 30px rgba(255, 62, 181, 0.2);
+  border-color: rgba(255, 215, 0, 0.5);
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.2);
   transform: translateY(-5px);
 }
 
@@ -469,7 +472,7 @@ body {
 .wallet-address {
   display: block;
   font-family: 'Courier New', monospace;
-  color: var(--neon-yellow);
+  color: var(--yellow);
   font-weight: 700;
   font-size: 0.85rem;
   margin-bottom: 0.4rem;
@@ -479,8 +482,8 @@ body {
 }
 
 .wallet-address:hover {
-  color: var(--neon-pink);
-  text-shadow: 0 0 10px rgba(255, 62, 181, 0.5);
+  color: var(--yellow);
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
   transform: translateX(2px);
 }
 
@@ -537,8 +540,8 @@ body {
 }
 
 .main-stat:hover {
-  border-color: var(--neon-pink);
-  box-shadow: 0 0 20px rgba(255, 62, 181, 0.2);
+  border-color: var(--yellow);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
 }
 
 .main-stat-label {
@@ -613,7 +616,7 @@ body {
 
 .wallet-cell {
   font-family: 'Courier New', monospace;
-  color: var(--neon-yellow);
+  color: var(--yellow);
   font-weight: 600;
 }
 
@@ -742,8 +745,8 @@ body {
 
 .form-input-compact:focus {
   outline: none;
-  border-color: var(--neon-pink);
-  box-shadow: 0 0 20px rgba(255, 62, 181, 0.2);
+  border-color: var(--yellow);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
 }
 
 .network-row {
@@ -769,15 +772,15 @@ body {
 }
 
 .toggle-btn-small:hover {
-  border-color: var(--neon-pink);
-  color: var(--neon-pink);
+  border-color: var(--yellow);
+  color: var(--yellow);
 }
 
 .toggle-btn-small.active {
-  background: rgba(255, 62, 181, 0.2);
-  border-color: var(--neon-pink);
-  color: var(--neon-pink);
-  box-shadow: 0 0 15px rgba(255, 62, 181, 0.2);
+  background: rgba(255, 215, 0, 0.2);
+  border-color: var(--yellow);
+  color: var(--yellow);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
 }
 
 /* Empty State */

@@ -1,4 +1,4 @@
-/* Home Page - Futuristic Neon Design */
+/* Home Page - Black & Yellow Design */
 
 .home-container {
   min-height: 100vh;
@@ -7,7 +7,7 @@
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  background: linear-gradient(135deg, #0a0e1a 0%, #0f1419 50%, #0a0e1a 100%);
+  background: linear-gradient(135deg, #000000 0%, #0a0a0a 50%, #000000 100%);
 }
 
 .home-header {
@@ -18,18 +18,18 @@
 .home-title {
   font-size: 3.5rem;
   font-weight: 700;
-  background: linear-gradient(90deg, #FFD34A 0%, #FF3EB5 100%);
+  background: linear-gradient(90deg, #FFD700 0%, #FFED4E 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   margin-bottom: 1rem;
   letter-spacing: 2px;
-  text-shadow: 0 0 30px rgba(255, 211, 74, 0.3);
+  text-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
 }
 
 .home-subtitle {
   font-size: 1.2rem;
-  color: #8892b0;
+  color: #999999;
   text-transform: uppercase;
   letter-spacing: 4px;
   font-weight: 300;
@@ -45,7 +45,7 @@
 }
 
 .module {
-  background: rgba(15, 20, 25, 0.8);
+  background: rgba(10, 10, 10, 0.95);
   border: 2px solid transparent;
   border-radius: 20px;
   padding: 4rem 3rem;
@@ -95,21 +95,21 @@
 }
 
 .module-simulator {
-  border-color: rgba(255, 62, 181, 0.2);
+  border-color: rgba(255, 215, 0, 0.2);
 }
 
 .module-simulator:hover {
-  border-color: #FF3EB5;
+  border-color: #FFD700;
   box-shadow:
-    0 0 30px rgba(255, 62, 181, 0.4),
-    0 0 60px rgba(255, 62, 181, 0.2),
-    inset 0 0 30px rgba(255, 62, 181, 0.05);
+    0 0 30px rgba(255, 215, 0, 0.4),
+    0 0 60px rgba(255, 215, 0, 0.2),
+    inset 0 0 30px rgba(255, 215, 0, 0.05);
   transform: translateY(-10px) scale(1.02);
 }
 
 .module-simulator:hover::before {
   opacity: 1;
-  background: linear-gradient(135deg, #FF3EB5 0%, transparent 100%);
+  background: linear-gradient(135deg, #FFD700 0%, transparent 100%);
 }
 
 .module-icon {
@@ -125,7 +125,7 @@
 }
 
 .module-simulator:hover .module-icon {
-  filter: drop-shadow(0 0 20px #FF3EB5) grayscale(0);
+  filter: drop-shadow(0 0 20px #FFD700) grayscale(0);
   transform: scale(1.1);
 }
 
@@ -142,7 +142,7 @@
 }
 
 .module-simulator .module-title {
-  color: #FF3EB5;
+  color: #FFD700;
 }
 
 .module-copytrading:hover .module-title {
@@ -150,12 +150,12 @@
 }
 
 .module-simulator:hover .module-title {
-  text-shadow: 0 0 20px rgba(255, 62, 181, 0.8);
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
 }
 
 .module-description {
   font-size: 1rem;
-  color: #8892b0;
+  color: #999999;
   text-align: center;
   font-weight: 300;
   letter-spacing: 1px;
@@ -163,7 +163,7 @@
 
 .home-footer {
   text-align: center;
-  color: #495670;
+  color: #666666;
   font-size: 0.9rem;
   font-weight: 300;
   letter-spacing: 2px;
