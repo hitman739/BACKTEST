@@ -184,9 +184,9 @@ function Simulator() {
                               wallet.fee_factor_ratio >= 0.5 ? 'ffr-medium' :
                               'ffr-low'
                             }`}
-                            title={`Fee Factor (mixed): ${(wallet.fee_factor_ratio * 100).toFixed(1)}%`}
+                            title={`Fee Factor Ratio (75% maker / 25% taker): ${(wallet.fee_factor_ratio * 100).toFixed(1)}%`}
                           >
-                            FFr
+                            FFr: {(wallet.fee_factor_ratio * 100).toFixed(1)}%
                           </span>
                         )}
                         {wallet.fee_factor_ratio_taker !== null && wallet.fee_factor_ratio_taker !== undefined && (
@@ -196,9 +196,9 @@ function Simulator() {
                               wallet.fee_factor_ratio_taker >= 0.5 ? 'ffr-medium' :
                               'ffr-low'
                             }`}
-                            title={`Fee Factor (100% taker): ${(wallet.fee_factor_ratio_taker * 100).toFixed(1)}%`}
+                            title={`Fee Factor Taker (100% taker fees): ${(wallet.fee_factor_ratio_taker * 100).toFixed(1)}%`}
                           >
-                            FFt
+                            FFt: {(wallet.fee_factor_ratio_taker * 100).toFixed(1)}%
                           </span>
                         )}
                       </div>

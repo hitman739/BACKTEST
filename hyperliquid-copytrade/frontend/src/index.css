@@ -619,7 +619,7 @@ body {
 /* Fee Factor Ratio Badge */
 .ffr-badge {
   display: inline-block;
-  padding: 0.2rem 0.4rem;
+  padding: 0.25rem 0.6rem;
   border-radius: 6px;
   font-size: 0.65rem;
   font-weight: 700;
@@ -627,6 +627,7 @@ body {
   letter-spacing: 0.5px;
   transition: all 0.3s;
   cursor: help;
+  white-space: nowrap;
 }
 
 .ffr-high {
