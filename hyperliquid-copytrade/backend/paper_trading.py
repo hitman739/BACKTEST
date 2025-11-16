@@ -411,65 +411,74 @@ class PaperTradingManager:
         Asume 75% maker, 25% taker
         """
         try:
-            # Obtener estadísticas del usuario
-            user_state = self.info.user_state(self.target_wallet)
+            # Obtener fills históricos para calcular volumen y PnL
+            fills = self.info.user_fills(self.target_wallet)
 
-            if not user_state:
+            if not fills or len(fills) == 0:
+                logger.warning(f"No fills available for {self.target_wallet}")
                 return None
 
-            # Extraer accountValue como proxy de profit histórico
-            # Nota: Hyperliquid API no expone directamente profit histórico total
-            # Usaremos PNL acumulado si está disponible
-            margin_summary = user_state.get("marginSummary", {})
-            account_value = float(margin_summary.get("accountValue", 0))
+            total_volume = 0.0
+            closed_pnl = 0.0
+            fills_with_pnl = 0
 
-            # Intentar obtener datos de fills históricos para calcular volumen
-            # Esto requiere usar user_fills
+            # Calcular volumen total y PnL cerrado de los fills
+            for fill in fills:
+                # Volumen = precio * size
+                px = float(fill.get("px", 0))
+                sz = abs(float(fill.get("sz", 0)))
+                total_volume += px * sz
+
+                # PnL de cada fill (solo disponible en fills que cierran)
+                if "closedPnl" in fill:
+                    closed_pnl += float(fill.get("closedPnl", 0))
+                    fills_with_pnl += 1
+
+            logger.info(f"Fills analyzed: {len(fills)} total, {fills_with_pnl} with closedPnl, volume: ${total_volume:.2f}, closed PnL: ${closed_pnl:.2f}")
+
+            # Si no hay volumen, no podemos calcular
+            if total_volume <= 0:
+                logger.warning(f"No volume found for {self.target_wallet}")
+                return None
+
+            # Calcular fee rate mezclado (75% maker, 25% taker)
+            MAKER_FEE = 0.00015  # 0.015%
+            TAKER_FEE = 0.00045  # 0.045%
+            mixed_fee_rate = 0.75 * MAKER_FEE + 0.25 * TAKER_FEE
+
+            # Estimar fees pagadas sobre el volumen total
+            estimated_fees = mixed_fee_rate * total_volume
+
+            # Usar user_state para obtener el PnL total real del trader
             try:
-                fills = self.info.user_fills(self.target_wallet)
+                user_state = self.info.user_state(self.target_wallet)
+                if user_state and "marginSummary" in user_state:
+                    margin_summary = user_state["marginSummary"]
+                    account_value = float(margin_summary.get("accountValue", 0))
 
-                if not fills or len(fills) == 0:
-                    return None
+                    # Si el trader tiene account value, asumimos que es profit bruto
+                    # (simplificación: ignora depósitos iniciales)
+                    if account_value > 0:
+                        gross_profit = account_value
+                        net_profit = gross_profit - estimated_fees
+                        fee_factor_ratio = net_profit / gross_profit
 
-                total_volume = 0.0
-                gross_profit = 0.0
+                        logger.info(f"FFr calculated from account: {fee_factor_ratio:.4f} (account: ${gross_profit:.2f}, fees: ${estimated_fees:.2f}, net: ${net_profit:.2f})")
+                        return fee_factor_ratio
+            except Exception as e:
+                logger.warning(f"Could not get user_state: {e}")
 
-                # Calcular volumen total y profit bruto de los fills
-                for fill in fills:
-                    # Volumen = precio * size
-                    px = float(fill.get("px", 0))
-                    sz = abs(float(fill.get("sz", 0)))
-                    total_volume += px * sz
+            # Fallback: si tenemos closed PnL positivo, usarlo
+            if closed_pnl > 0:
+                net_profit = closed_pnl - estimated_fees
+                fee_factor_ratio = net_profit / closed_pnl
 
-                    # PnL de cada fill (si está disponible)
-                    if "closedPnl" in fill:
-                        gross_profit += float(fill.get("closedPnl", 0))
-
-                # Si no hay profit bruto o es negativo, retornar None
-                if gross_profit <= 0:
-                    return None
-
-                # Calcular fee rate mezclado (75% maker, 25% taker)
-                MAKER_FEE = 0.00015  # 0.015%
-                TAKER_FEE = 0.00045  # 0.045%
-                mixed_fee_rate = 0.75 * MAKER_FEE + 0.25 * TAKER_FEE
-
-                # Estimar fees pagadas
-                estimated_fees = mixed_fee_rate * total_volume
-
-                # Profit neto
-                net_profit = gross_profit - estimated_fees
-
-                # Fee Factor Ratio
-                fee_factor_ratio = net_profit / gross_profit
-
-                logger.info(f"FFr calculated: {fee_factor_ratio:.4f} (gross: ${gross_profit:.2f}, fees: ${estimated_fees:.2f}, net: ${net_profit:.2f})")
-
+                logger.info(f"FFr calculated from closedPnl: {fee_factor_ratio:.4f} (gross: ${closed_pnl:.2f}, fees: ${estimated_fees:.2f}, net: ${net_profit:.2f})")
                 return fee_factor_ratio
 
-            except Exception as e:
-                logger.warning(f"Could not calculate FFr from fills: {e}")
-                return None
+            # Si no tenemos datos suficientes, retornar None
+            logger.warning(f"Insufficient data to calculate FFr for {self.target_wallet}")
+            return None
 
         except Exception as e:
             logger.error(f"Error calculating Fee Factor Ratio: {e}")
@@ -483,56 +492,64 @@ class PaperTradingManager:
         Asume 100% taker (0.045%)
         """
         try:
-            # Obtener estadísticas del usuario
-            user_state = self.info.user_state(self.target_wallet)
+            # Obtener fills históricos para calcular volumen
+            fills = self.info.user_fills(self.target_wallet)
 
-            if not user_state:
+            if not fills or len(fills) == 0:
+                logger.warning(f"No fills available for FFt calculation: {self.target_wallet}")
                 return None
 
-            # Intentar obtener datos de fills históricos para calcular volumen
+            total_volume = 0.0
+            closed_pnl = 0.0
+
+            # Calcular volumen total y PnL cerrado
+            for fill in fills:
+                px = float(fill.get("px", 0))
+                sz = abs(float(fill.get("sz", 0)))
+                total_volume += px * sz
+
+                if "closedPnl" in fill:
+                    closed_pnl += float(fill.get("closedPnl", 0))
+
+            # Si no hay volumen, no podemos calcular
+            if total_volume <= 0:
+                logger.warning(f"No volume found for FFt: {self.target_wallet}")
+                return None
+
+            # Usar 100% taker fee (peor caso)
+            TAKER_FEE = 0.00045  # 0.045%
+
+            # Estimar fees pagadas
+            estimated_fees = TAKER_FEE * total_volume
+
+            # Usar user_state para obtener el PnL total real del trader
             try:
-                fills = self.info.user_fills(self.target_wallet)
+                user_state = self.info.user_state(self.target_wallet)
+                if user_state and "marginSummary" in user_state:
+                    margin_summary = user_state["marginSummary"]
+                    account_value = float(margin_summary.get("accountValue", 0))
 
-                if not fills or len(fills) == 0:
-                    return None
+                    if account_value > 0:
+                        gross_profit = account_value
+                        net_profit = gross_profit - estimated_fees
+                        fee_factor_ratio_taker = net_profit / gross_profit
 
-                total_volume = 0.0
-                gross_profit = 0.0
+                        logger.info(f"FFt calculated from account: {fee_factor_ratio_taker:.4f} (account: ${gross_profit:.2f}, fees: ${estimated_fees:.2f}, net: ${net_profit:.2f})")
+                        return fee_factor_ratio_taker
+            except Exception as e:
+                logger.warning(f"Could not get user_state for FFt: {e}")
 
-                # Calcular volumen total y profit bruto de los fills
-                for fill in fills:
-                    # Volumen = precio * size
-                    px = float(fill.get("px", 0))
-                    sz = abs(float(fill.get("sz", 0)))
-                    total_volume += px * sz
+            # Fallback: si tenemos closed PnL positivo, usarlo
+            if closed_pnl > 0:
+                net_profit = closed_pnl - estimated_fees
+                fee_factor_ratio_taker = net_profit / closed_pnl
 
-                    # PnL de cada fill (si está disponible)
-                    if "closedPnl" in fill:
-                        gross_profit += float(fill.get("closedPnl", 0))
-
-                # Si no hay profit bruto o es negativo, retornar None
-                if gross_profit <= 0:
-                    return None
-
-                # Usar 100% taker fee (peor caso)
-                TAKER_FEE = 0.00045  # 0.045%
-
-                # Estimar fees pagadas
-                estimated_fees = TAKER_FEE * total_volume
-
-                # Profit neto
-                net_profit = gross_profit - estimated_fees
-
-                # Fee Factor Ratio (taker)
-                fee_factor_ratio_taker = net_profit / gross_profit
-
-                logger.info(f"FFt calculated: {fee_factor_ratio_taker:.4f} (gross: ${gross_profit:.2f}, fees: ${estimated_fees:.2f}, net: ${net_profit:.2f})")
-
+                logger.info(f"FFt calculated from closedPnl: {fee_factor_ratio_taker:.4f} (gross: ${closed_pnl:.2f}, fees: ${estimated_fees:.2f}, net: ${net_profit:.2f})")
                 return fee_factor_ratio_taker
 
-            except Exception as e:
-                logger.warning(f"Could not calculate FFt from fills: {e}")
-                return None
+            # Si no tenemos datos suficientes
+            logger.warning(f"Insufficient data to calculate FFt for {self.target_wallet}")
+            return None
 
         except Exception as e:
             logger.error(f"Error calculating Fee Factor Ratio (taker): {e}")
