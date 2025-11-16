@@ -192,11 +192,16 @@ class PaperTradingManager:
                 old_size = self.last_positions[coin]["size"]
                 new_size = pos_data["size"]
 
-                if abs(new_size - old_size) > 0.0001:
+                # Only detect SIGNIFICANT size changes (>5% change)
+                # Ignore tiny changes from PnL fluctuations, funding fees, etc.
+                size_change_pct = abs((new_size - old_size) / old_size) * 100 if old_size != 0 else 0
+
+                if size_change_pct > 5.0:  # >5% change = real DCA/partial close
                     # Size changed (DCA or partial close)
+                    logger.info(f"{coin} size changed {size_change_pct:.2f}% ({old_size:.4f} → {new_size:.4f})")
                     await self._simulate_adjust(coin, pos_data, target_account_value)
 
-    async def _simulate_open(self, coin: str, pos_data: dict, target_account_value: float):
+    async def _simulate_open(self, coin: str, pos_data: dict, target_account_value: float, is_adjustment: bool = False):
         """Simulate opening a position"""
         try:
             # Calculate margin % used by target
@@ -233,7 +238,9 @@ class PaperTradingManager:
                 "fees_paid": fee
             }
 
-            self.trades_copied += 1
+            # Only count as a new trade if it's not an adjustment
+            if not is_adjustment:
+                self.trades_copied += 1
 
             # Log trade
             trade = {
@@ -266,7 +273,7 @@ class PaperTradingManager:
         except Exception as e:
             logger.error(f"Error simulating open {coin}: {e}")
 
-    async def _simulate_close(self, coin: str):
+    async def _simulate_close(self, coin: str, is_adjustment: bool = False):
         """Simulate closing a position"""
         try:
             if coin not in self.open_positions:
@@ -321,7 +328,9 @@ class PaperTradingManager:
             # Remove from open positions
             del self.open_positions[coin]
 
-            self.trades_copied += 1
+            # Only count as a new trade if it's not an adjustment
+            if not is_adjustment:
+                self.trades_copied += 1
 
             await self._send_update({
                 "type": "trade",
@@ -348,12 +357,12 @@ class PaperTradingManager:
         # In a more sophisticated version, we'd track each entry separately
         logger.info(f"Position adjustment for {coin} (closing and reopening)")
 
-        # Close current
+        # Close current (mark as adjustment so it doesn't count as a new trade)
         if coin in self.open_positions:
-            await self._simulate_close(coin)
+            await self._simulate_close(coin, is_adjustment=True)
 
-        # Reopen with new size
-        await self._simulate_open(coin, pos_data, target_account_value)
+        # Reopen with new size (mark as adjustment so it doesn't count as a new trade)
+        await self._simulate_open(coin, pos_data, target_account_value, is_adjustment=True)
 
     def _get_current_price(self, coin: str) -> float:
         """Get current market price for a coin"""
