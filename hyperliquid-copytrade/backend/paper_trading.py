@@ -40,6 +40,7 @@ class PaperTradingManager:
         self.trade_history = []  # Lista de todos los trades
         self.total_pnl = 0.0
         self.total_fees_paid = 0.0
+        self.initialized = False  # Flag para ignorar posiciones pre-existentes
 
         # Initialize Hyperliquid Info client (solo para leer)
         base_url = constants.TESTNET_API_URL if testnet else constants.MAINNET_API_URL
@@ -116,7 +117,19 @@ class PaperTradingManager:
                 logger.warning("Target account value is 0")
                 return
 
-            # Process changes
+            # Si es la primera vez, solo guardamos las posiciones actuales (baseline)
+            # NO las copiamos porque ya existían antes de iniciar la simulación
+            if not self.initialized:
+                self.last_positions = current_positions
+                self.initialized = True
+                logger.info(f"Baseline establecido. Posiciones pre-existentes ignoradas: {list(current_positions.keys())}")
+                await self._send_update({
+                    "type": "info",
+                    "message": f"Baseline: {len(current_positions)} posiciones pre-existentes ignoradas. Esperando nuevos trades..."
+                })
+                return
+
+            # Process changes (solo después de establecer baseline)
             await self._process_position_changes(current_positions, target_account_value)
 
             # Update last positions
