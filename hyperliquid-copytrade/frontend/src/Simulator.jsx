@@ -10,7 +10,6 @@ function Simulator() {
   const [walletToAdd, setWalletToAdd] = useState('')
   const [wallets, setWallets] = useState([])
   const [initialBalance, setInitialBalance] = useState(10000)
-  const [network, setNetwork] = useState('testnet')
 
   // App state
   const [loading, setLoading] = useState(false)
@@ -62,7 +61,7 @@ function Simulator() {
         },
         body: JSON.stringify({
           target_wallet: walletToAdd,
-          testnet: network === 'testnet',
+          testnet: false,  // Siempre mainnet
           initial_balance: initialBalance
         })
       })
@@ -301,29 +300,11 @@ function Simulator() {
               {loading ? '...' : `+ Añadir (${wallets.length}/15)`}
             </button>
           </div>
-
-          <div className="network-row">
-            <label className="form-label-small">Network:</label>
-            <div className="toggle-group-small">
-              <button
-                className={`toggle-btn-small ${network === 'testnet' ? 'active' : ''}`}
-                onClick={() => setNetwork('testnet')}
-              >
-                Testnet
-              </button>
-              <button
-                className={`toggle-btn-small ${network === 'mainnet' ? 'active' : ''}`}
-                onClick={() => setNetwork('mainnet')}
-              >
-                Mainnet
-              </button>
-            </div>
-          </div>
         </div>
 
         {wallets.length === 0 && (
           <div className="empty-state">
-            <p>👆 Añade wallets para comenzar a testear</p>
+            <p>👆 Añade wallets para comenzar a simular</p>
           </div>
         )}
       </div>

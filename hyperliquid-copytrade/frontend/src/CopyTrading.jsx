@@ -10,7 +10,6 @@ function CopyTrading() {
   const [apiKey, setApiKey] = useState('')
   const [apiSecret, setApiSecret] = useState('')
   const [targetWallet, setTargetWallet] = useState('')
-  const [network, setNetwork] = useState('testnet')
 
   // Paper trading
   const [paperMode, setPaperMode] = useState(true)
@@ -82,7 +81,7 @@ function CopyTrading() {
           api_key: apiKey,
           api_secret: apiSecret,
           target_wallet: targetWallet,
-          testnet: network === 'testnet',
+          testnet: false,  // Siempre mainnet
           paper_mode: paperMode,
           initial_balance: initialBalance
         })
@@ -265,24 +264,6 @@ function CopyTrading() {
             />
           </div>
 
-          <div className="form-section">
-            <label className="form-label">Network</label>
-            <div className="toggle-group">
-              <button
-                className={`toggle-btn ${network === 'testnet' ? 'active' : ''}`}
-                onClick={() => setNetwork('testnet')}
-              >
-                Testnet
-              </button>
-              <button
-                className={`toggle-btn ${network === 'mainnet' ? 'active' : ''}`}
-                onClick={() => setNetwork('mainnet')}
-              >
-                Mainnet
-              </button>
-            </div>
-          </div>
-
           <button className="start-button" onClick={handleStart} disabled={loading}>
             {loading ? 'Iniciando...' : 'Start CopyTrading'}
           </button>
@@ -309,9 +290,9 @@ function CopyTrading() {
         <div className="alert alert-warning">
           <strong>⚠️ Importante:</strong>
           <ul>
-            <li>Comienza siempre en Testnet</li>
             <li>API Key solo con permisos de trading (NO withdraw)</li>
             <li>El bot copia % de margen usado, no el tamaño nominal</li>
+            <li>Usa Paper Mode primero para probar sin riesgo</li>
           </ul>
         </div>
       )}
