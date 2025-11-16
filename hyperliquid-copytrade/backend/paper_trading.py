@@ -53,6 +53,12 @@ class PaperTradingManager:
         logger.info(f"Initial balance: ${initial_balance:,.2f}")
         logger.info(f"Testnet: {testnet}")
 
+        # Calcular Fee Factor Ratios inmediatamente con datos históricos
+        self.fee_factor_ratio = self._calculate_fee_factor_ratio()
+        self.fee_factor_ratio_taker = self._calculate_fee_factor_ratio_taker()
+        logger.info(f"FFr (mixed): {self.fee_factor_ratio}")
+        logger.info(f"FFt (100% taker): {self.fee_factor_ratio_taker}")
+
     async def start(self):
         """Start paper trading"""
         self.is_running = True
@@ -546,11 +552,11 @@ class PaperTradingManager:
         # ROI incluyendo posiciones abiertas
         roi = ((balance_with_unrealized - self.initial_balance) / self.initial_balance) * 100
 
-        # Calcular Fee Factor Ratios solo una vez
-        if self.fee_factor_ratio is None and self.initialized:
+        # Los Fee Factor Ratios ya se calcularon en __init__(), pero podemos recalcular si es None
+        if self.fee_factor_ratio is None:
             self.fee_factor_ratio = self._calculate_fee_factor_ratio()
 
-        if self.fee_factor_ratio_taker is None and self.initialized:
+        if self.fee_factor_ratio_taker is None:
             self.fee_factor_ratio_taker = self._calculate_fee_factor_ratio_taker()
 
         return {
