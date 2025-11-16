@@ -148,79 +148,100 @@ function Simulator() {
             </button>
           </div>
 
-          <div className="comparison-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Wallet</th>
-                  <th>Balance</th>
-                  <th>PnL Total</th>
-                  <th>Unrealized</th>
-                  <th>ROI</th>
-                  <th>Fees</th>
-                  <th>Trades</th>
-                  <th>Acción</th>
-                </tr>
-              </thead>
-              <tbody>
-                {wallets
-                  .sort((a, b) => b.roi - a.roi)
-                  .map((wallet) => (
-                    <tr key={wallet.wallet}>
-                      <td className="wallet-cell" title={wallet.wallet}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span>{wallet.wallet.slice(0, 6)}...{wallet.wallet.slice(-4)}</span>
-                          {wallet.fee_factor_ratio !== null && wallet.fee_factor_ratio !== undefined && (
-                            <span
-                              className={`ffr-badge ${
-                                wallet.fee_factor_ratio >= 0.8 ? 'ffr-high' :
-                                wallet.fee_factor_ratio >= 0.5 ? 'ffr-medium' :
-                                'ffr-low'
-                              }`}
-                              title={`Fee Factor (mixed): ${(wallet.fee_factor_ratio * 100).toFixed(1)}%`}
-                            >
-                              FFr
-                            </span>
-                          )}
-                          {wallet.fee_factor_ratio_taker !== null && wallet.fee_factor_ratio_taker !== undefined && (
-                            <span
-                              className={`ffr-badge ${
-                                wallet.fee_factor_ratio_taker >= 0.8 ? 'ffr-high' :
-                                wallet.fee_factor_ratio_taker >= 0.5 ? 'ffr-medium' :
-                                'ffr-low'
-                              }`}
-                              title={`Fee Factor (100% taker): ${(wallet.fee_factor_ratio_taker * 100).toFixed(1)}%`}
-                            >
-                              FFt
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td>${wallet.current_balance?.toFixed(2)}</td>
-                      <td className={wallet.total_pnl >= 0 ? 'positive' : 'negative'}>
-                        ${wallet.total_pnl?.toFixed(2)}
-                      </td>
-                      <td className={wallet.unrealized_pnl >= 0 ? 'positive' : 'negative'} title={`Realized: $${wallet.realized_pnl?.toFixed(2)}`}>
-                        ${wallet.unrealized_pnl?.toFixed(2)}
-                      </td>
-                      <td className={wallet.roi >= 0 ? 'roi-positive' : 'roi-negative'}>
+          <div className="traders-grid">
+            {wallets
+              .sort((a, b) => b.roi - a.roi)
+              .map((wallet) => (
+                <div key={wallet.wallet} className="trader-card">
+                  {/* Header */}
+                  <div className="trader-card-header">
+                    <div className="trader-wallet">
+                      <span className="wallet-address" title={wallet.wallet}>
+                        {wallet.wallet.slice(0, 8)}...{wallet.wallet.slice(-6)}
+                      </span>
+                      <div className="badges-row">
+                        {wallet.fee_factor_ratio !== null && wallet.fee_factor_ratio !== undefined && (
+                          <span
+                            className={`ffr-badge ${
+                              wallet.fee_factor_ratio >= 0.8 ? 'ffr-high' :
+                              wallet.fee_factor_ratio >= 0.5 ? 'ffr-medium' :
+                              'ffr-low'
+                            }`}
+                            title={`Fee Factor (mixed): ${(wallet.fee_factor_ratio * 100).toFixed(1)}%`}
+                          >
+                            FFr
+                          </span>
+                        )}
+                        {wallet.fee_factor_ratio_taker !== null && wallet.fee_factor_ratio_taker !== undefined && (
+                          <span
+                            className={`ffr-badge ${
+                              wallet.fee_factor_ratio_taker >= 0.8 ? 'ffr-high' :
+                              wallet.fee_factor_ratio_taker >= 0.5 ? 'ffr-medium' :
+                              'ffr-low'
+                            }`}
+                            title={`Fee Factor (100% taker): ${(wallet.fee_factor_ratio_taker * 100).toFixed(1)}%`}
+                          >
+                            FFt
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleRemoveWallet(wallet.wallet)}
+                      className="card-remove-btn"
+                      disabled={loading}
+                      title="Remover trader"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {/* Main Stats */}
+                  <div className="trader-main-stats">
+                    <div className="main-stat">
+                      <span className="main-stat-label">ROI</span>
+                      <span className={`main-stat-value ${wallet.roi >= 0 ? 'positive' : 'negative'}`}>
                         {wallet.roi?.toFixed(2)}%
-                      </td>
-                      <td>${wallet.total_fees_paid?.toFixed(2)}</td>
-                      <td>{wallet.trades_copied}</td>
-                      <td>
-                        <button
-                          onClick={() => handleRemoveWallet(wallet.wallet)}
-                          className="remove-button"
-                          disabled={loading}
-                        >
-                          ✕
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
+                      </span>
+                    </div>
+                    <div className="main-stat">
+                      <span className="main-stat-label">Balance</span>
+                      <span className="main-stat-value">${wallet.current_balance?.toFixed(2)}</span>
+                    </div>
+                  </div>
+
+                  {/* Secondary Stats Grid */}
+                  <div className="trader-stats-grid">
+                    <div className="stat-box-small">
+                      <span className="stat-box-label">PnL Total</span>
+                      <span className={`stat-box-value ${wallet.total_pnl >= 0 ? 'positive' : 'negative'}`}>
+                        ${wallet.total_pnl?.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="stat-box-small">
+                      <span className="stat-box-label">Unrealized</span>
+                      <span className={`stat-box-value ${wallet.unrealized_pnl >= 0 ? 'positive' : 'negative'}`}>
+                        ${wallet.unrealized_pnl?.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="stat-box-small">
+                      <span className="stat-box-label">Realized</span>
+                      <span className={`stat-box-value ${(wallet.realized_pnl || 0) >= 0 ? 'positive' : 'negative'}`}>
+                        ${wallet.realized_pnl?.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="stat-box-small">
+                      <span className="stat-box-label">Fees</span>
+                      <span className="stat-box-value">${wallet.total_fees_paid?.toFixed(2)}</span>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="trader-card-footer">
+                    <span className="trades-count">{wallet.trades_copied} trades copiados</span>
+                  </div>
+                </div>
+              ))}
           </div>
         </div>
       )}
