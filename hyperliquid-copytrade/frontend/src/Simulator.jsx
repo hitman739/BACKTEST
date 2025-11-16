@@ -177,9 +177,21 @@ function Simulator() {
                                 wallet.fee_factor_ratio >= 0.5 ? 'ffr-medium' :
                                 'ffr-low'
                               }`}
-                              title={`Fee Factor: ${(wallet.fee_factor_ratio * 100).toFixed(1)}%`}
+                              title={`Fee Factor (mixed): ${(wallet.fee_factor_ratio * 100).toFixed(1)}%`}
                             >
                               FFr
+                            </span>
+                          )}
+                          {wallet.fee_factor_ratio_taker !== null && wallet.fee_factor_ratio_taker !== undefined && (
+                            <span
+                              className={`ffr-badge ${
+                                wallet.fee_factor_ratio_taker >= 0.8 ? 'ffr-high' :
+                                wallet.fee_factor_ratio_taker >= 0.5 ? 'ffr-medium' :
+                                'ffr-low'
+                              }`}
+                              title={`Fee Factor (100% taker): ${(wallet.fee_factor_ratio_taker * 100).toFixed(1)}%`}
+                            >
+                              FFt
                             </span>
                           )}
                         </div>

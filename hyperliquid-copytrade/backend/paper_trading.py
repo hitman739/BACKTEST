@@ -41,7 +41,8 @@ class PaperTradingManager:
         self.total_pnl = 0.0
         self.total_fees_paid = 0.0
         self.initialized = False  # Flag para ignorar posiciones pre-existentes
-        self.fee_factor_ratio = None  # FFr calculado de datos históricos
+        self.fee_factor_ratio = None  # FFr calculado de datos históricos (75% maker, 25% taker)
+        self.fee_factor_ratio_taker = None  # FFr con 100% taker (peor caso)
 
         # Initialize Hyperliquid Info client (solo para leer)
         base_url = constants.TESTNET_API_URL if testnet else constants.MAINNET_API_URL
@@ -468,6 +469,69 @@ class PaperTradingManager:
             logger.error(f"Error calculating Fee Factor Ratio: {e}")
             return None
 
+    def _calculate_fee_factor_ratio_taker(self) -> float:
+        """
+        Calcula el Fee Factor Ratio asumiendo 100% taker fees (peor caso).
+        FFt = profit_neto / profit_bruto
+
+        Asume 100% taker (0.045%)
+        """
+        try:
+            # Obtener estadísticas del usuario
+            user_state = self.info.user_state(self.target_wallet)
+
+            if not user_state:
+                return None
+
+            # Intentar obtener datos de fills históricos para calcular volumen
+            try:
+                fills = self.info.user_fills(self.target_wallet)
+
+                if not fills or len(fills) == 0:
+                    return None
+
+                total_volume = 0.0
+                gross_profit = 0.0
+
+                # Calcular volumen total y profit bruto de los fills
+                for fill in fills:
+                    # Volumen = precio * size
+                    px = float(fill.get("px", 0))
+                    sz = abs(float(fill.get("sz", 0)))
+                    total_volume += px * sz
+
+                    # PnL de cada fill (si está disponible)
+                    if "closedPnl" in fill:
+                        gross_profit += float(fill.get("closedPnl", 0))
+
+                # Si no hay profit bruto o es negativo, retornar None
+                if gross_profit <= 0:
+                    return None
+
+                # Usar 100% taker fee (peor caso)
+                TAKER_FEE = 0.00045  # 0.045%
+
+                # Estimar fees pagadas
+                estimated_fees = TAKER_FEE * total_volume
+
+                # Profit neto
+                net_profit = gross_profit - estimated_fees
+
+                # Fee Factor Ratio (taker)
+                fee_factor_ratio_taker = net_profit / gross_profit
+
+                logger.info(f"FFt calculated: {fee_factor_ratio_taker:.4f} (gross: ${gross_profit:.2f}, fees: ${estimated_fees:.2f}, net: ${net_profit:.2f})")
+
+                return fee_factor_ratio_taker
+
+            except Exception as e:
+                logger.warning(f"Could not calculate FFt from fills: {e}")
+                return None
+
+        except Exception as e:
+            logger.error(f"Error calculating Fee Factor Ratio (taker): {e}")
+            return None
+
     def get_stats(self) -> dict:
         """Get current paper trading stats"""
         # Calcular PnL no realizado (posiciones abiertas)
@@ -482,9 +546,12 @@ class PaperTradingManager:
         # ROI incluyendo posiciones abiertas
         roi = ((balance_with_unrealized - self.initial_balance) / self.initial_balance) * 100
 
-        # Calcular Fee Factor Ratio solo una vez
+        # Calcular Fee Factor Ratios solo una vez
         if self.fee_factor_ratio is None and self.initialized:
             self.fee_factor_ratio = self._calculate_fee_factor_ratio()
+
+        if self.fee_factor_ratio_taker is None and self.initialized:
+            self.fee_factor_ratio_taker = self._calculate_fee_factor_ratio_taker()
 
         return {
             "is_running": self.is_running,
@@ -499,5 +566,6 @@ class PaperTradingManager:
             "trades_copied": self.trades_copied,
             "open_positions": len(self.open_positions),
             "open_positions_list": list(self.open_positions.values()),
-            "fee_factor_ratio": self.fee_factor_ratio
+            "fee_factor_ratio": self.fee_factor_ratio,
+            "fee_factor_ratio_taker": self.fee_factor_ratio_taker
         }
