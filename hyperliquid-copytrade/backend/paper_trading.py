@@ -69,6 +69,43 @@ class PaperTradingManager:
             "message": f"Paper trading iniciado. Simulando con ${self.initial_balance:,.2f}"
         })
 
+        # IMPORTANTE: Establecer baseline ANTES de empezar el loop
+        # Esto evita copiar posiciones pre-existentes
+        try:
+            logger.info("Establishing baseline - getting current positions...")
+            user_state = self.info.user_state(self.target_wallet)
+
+            if user_state and "assetPositions" in user_state:
+                baseline_positions = {}
+                for position in user_state["assetPositions"]:
+                    if "position" in position:
+                        pos = position["position"]
+                        coin = pos["coin"]
+                        size = float(pos["szi"])
+
+                        if size != 0:
+                            baseline_positions[coin] = {
+                                "size": size,
+                                "entry_px": float(pos.get("entryPx", 0)),
+                                "leverage": float(pos.get("leverage", {}).get("value", 1)),
+                                "margin_used": float(pos.get("marginUsed", 0)),
+                            }
+
+                self.last_positions = baseline_positions
+                logger.info(f"Baseline established: {len(baseline_positions)} pre-existing positions IGNORED: {list(baseline_positions.keys())}")
+                await self._send_update({
+                    "type": "info",
+                    "message": f"Baseline: {len(baseline_positions)} posiciones pre-existentes ignoradas. Solo copiaré trades NUEVOS."
+                })
+            else:
+                logger.info("No positions found - clean slate")
+
+            self.initialized = True
+
+        except Exception as e:
+            logger.error(f"Error establishing baseline: {e}")
+
+        # Now start the monitoring loop
         try:
             while self.is_running:
                 await self._check_and_simulate()
@@ -125,19 +162,7 @@ class PaperTradingManager:
                 logger.warning("Target account value is 0")
                 return
 
-            # Si es la primera vez, solo guardamos las posiciones actuales (baseline)
-            # NO las copiamos porque ya existían antes de iniciar la simulación
-            if not self.initialized:
-                self.last_positions = current_positions
-                self.initialized = True
-                logger.info(f"Baseline establecido. Posiciones pre-existentes ignoradas: {list(current_positions.keys())}")
-                await self._send_update({
-                    "type": "info",
-                    "message": f"Baseline: {len(current_positions)} posiciones pre-existentes ignoradas. Esperando nuevos trades..."
-                })
-                return
-
-            # Process changes (solo después de establecer baseline)
+            # Process changes (baseline ya se estableció en start())
             await self._process_position_changes(current_positions, target_account_value)
 
             # Update last positions
