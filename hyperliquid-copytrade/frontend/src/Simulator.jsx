@@ -30,6 +30,7 @@ function Simulator() {
       if (response.ok) {
         const data = await response.json()
         if (data.multi_wallet && data.wallets) {
+          console.log('Wallet data from backend:', JSON.stringify(data.wallets, null, 2))
           setWallets(data.wallets)
         }
       }

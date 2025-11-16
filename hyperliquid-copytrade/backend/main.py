@@ -213,10 +213,14 @@ async def get_status():
                 "initial_balance": stats["initial_balance"],
                 "current_balance": stats["current_balance"],
                 "total_pnl": stats["total_pnl"],
+                "realized_pnl": stats["realized_pnl"],
+                "unrealized_pnl": stats["unrealized_pnl"],
                 "total_fees_paid": stats["total_fees_paid"],
                 "roi": stats["roi"],
                 "trades_copied": stats["trades_copied"],
-                "open_positions": stats["open_positions"]
+                "open_positions": stats["open_positions"],
+                "fee_factor_ratio": stats["fee_factor_ratio"],
+                "fee_factor_ratio_taker": stats["fee_factor_ratio_taker"]
             })
 
         return {
