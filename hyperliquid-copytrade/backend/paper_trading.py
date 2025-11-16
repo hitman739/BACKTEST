@@ -41,6 +41,7 @@ class PaperTradingManager:
         self.total_pnl = 0.0
         self.total_fees_paid = 0.0
         self.initialized = False  # Flag para ignorar posiciones pre-existentes
+        self.fee_factor_ratio = None  # FFr calculado de datos históricos
 
         # Initialize Hyperliquid Info client (solo para leer)
         base_url = constants.TESTNET_API_URL if testnet else constants.MAINNET_API_URL
@@ -395,6 +396,78 @@ class PaperTradingManager:
 
         return unrealized_pnl
 
+    def _calculate_fee_factor_ratio(self) -> float:
+        """
+        Calcula el Fee Factor Ratio basado en datos históricos del trader.
+        FFr = profit_neto / profit_bruto
+
+        Asume 75% maker, 25% taker
+        """
+        try:
+            # Obtener estadísticas del usuario
+            user_state = self.info.user_state(self.target_wallet)
+
+            if not user_state:
+                return None
+
+            # Extraer accountValue como proxy de profit histórico
+            # Nota: Hyperliquid API no expone directamente profit histórico total
+            # Usaremos PNL acumulado si está disponible
+            margin_summary = user_state.get("marginSummary", {})
+            account_value = float(margin_summary.get("accountValue", 0))
+
+            # Intentar obtener datos de fills históricos para calcular volumen
+            # Esto requiere usar user_fills
+            try:
+                fills = self.info.user_fills(self.target_wallet)
+
+                if not fills or len(fills) == 0:
+                    return None
+
+                total_volume = 0.0
+                gross_profit = 0.0
+
+                # Calcular volumen total y profit bruto de los fills
+                for fill in fills:
+                    # Volumen = precio * size
+                    px = float(fill.get("px", 0))
+                    sz = abs(float(fill.get("sz", 0)))
+                    total_volume += px * sz
+
+                    # PnL de cada fill (si está disponible)
+                    if "closedPnl" in fill:
+                        gross_profit += float(fill.get("closedPnl", 0))
+
+                # Si no hay profit bruto o es negativo, retornar None
+                if gross_profit <= 0:
+                    return None
+
+                # Calcular fee rate mezclado (75% maker, 25% taker)
+                MAKER_FEE = 0.00015  # 0.015%
+                TAKER_FEE = 0.00045  # 0.045%
+                mixed_fee_rate = 0.75 * MAKER_FEE + 0.25 * TAKER_FEE
+
+                # Estimar fees pagadas
+                estimated_fees = mixed_fee_rate * total_volume
+
+                # Profit neto
+                net_profit = gross_profit - estimated_fees
+
+                # Fee Factor Ratio
+                fee_factor_ratio = net_profit / gross_profit
+
+                logger.info(f"FFr calculated: {fee_factor_ratio:.4f} (gross: ${gross_profit:.2f}, fees: ${estimated_fees:.2f}, net: ${net_profit:.2f})")
+
+                return fee_factor_ratio
+
+            except Exception as e:
+                logger.warning(f"Could not calculate FFr from fills: {e}")
+                return None
+
+        except Exception as e:
+            logger.error(f"Error calculating Fee Factor Ratio: {e}")
+            return None
+
     def get_stats(self) -> dict:
         """Get current paper trading stats"""
         # Calcular PnL no realizado (posiciones abiertas)
@@ -409,6 +482,10 @@ class PaperTradingManager:
         # ROI incluyendo posiciones abiertas
         roi = ((balance_with_unrealized - self.initial_balance) / self.initial_balance) * 100
 
+        # Calcular Fee Factor Ratio solo una vez
+        if self.fee_factor_ratio is None and self.initialized:
+            self.fee_factor_ratio = self._calculate_fee_factor_ratio()
+
         return {
             "is_running": self.is_running,
             "target_wallet": self.target_wallet,
@@ -421,5 +498,6 @@ class PaperTradingManager:
             "roi": roi,
             "trades_copied": self.trades_copied,
             "open_positions": len(self.open_positions),
-            "open_positions_list": list(self.open_positions.values())
+            "open_positions_list": list(self.open_positions.values()),
+            "fee_factor_ratio": self.fee_factor_ratio
         }

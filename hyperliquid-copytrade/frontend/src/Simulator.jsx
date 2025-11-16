@@ -168,7 +168,21 @@ function Simulator() {
                   .map((wallet) => (
                     <tr key={wallet.wallet}>
                       <td className="wallet-cell" title={wallet.wallet}>
-                        {wallet.wallet.slice(0, 6)}...{wallet.wallet.slice(-4)}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span>{wallet.wallet.slice(0, 6)}...{wallet.wallet.slice(-4)}</span>
+                          {wallet.fee_factor_ratio !== null && wallet.fee_factor_ratio !== undefined && (
+                            <span
+                              className={`ffr-badge ${
+                                wallet.fee_factor_ratio >= 0.8 ? 'ffr-high' :
+                                wallet.fee_factor_ratio >= 0.5 ? 'ffr-medium' :
+                                'ffr-low'
+                              }`}
+                              title={`Fee Factor: ${(wallet.fee_factor_ratio * 100).toFixed(1)}%`}
+                            >
+                              FFr
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td>${wallet.current_balance?.toFixed(2)}</td>
                       <td className={wallet.total_pnl >= 0 ? 'positive' : 'negative'}>

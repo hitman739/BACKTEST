@@ -454,6 +454,55 @@ body {
   font-weight: 600;
 }
 
+/* Fee Factor Ratio Badge */
+.ffr-badge {
+  display: inline-block;
+  padding: 0.2rem 0.4rem;
+  border-radius: 6px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.3s;
+  cursor: help;
+}
+
+.ffr-high {
+  background: rgba(0, 255, 136, 0.2);
+  color: var(--success);
+  border: 1px solid var(--success);
+  box-shadow: 0 0 8px rgba(0, 255, 136, 0.3);
+}
+
+.ffr-high:hover {
+  box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+  transform: scale(1.05);
+}
+
+.ffr-medium {
+  background: rgba(255, 170, 0, 0.2);
+  color: var(--warning);
+  border: 1px solid var(--warning);
+  box-shadow: 0 0 8px rgba(255, 170, 0, 0.3);
+}
+
+.ffr-medium:hover {
+  box-shadow: 0 0 15px rgba(255, 170, 0, 0.5);
+  transform: scale(1.05);
+}
+
+.ffr-low {
+  background: rgba(255, 51, 102, 0.2);
+  color: var(--error);
+  border: 1px solid var(--error);
+  box-shadow: 0 0 8px rgba(255, 51, 102, 0.3);
+}
+
+.ffr-low:hover {
+  box-shadow: 0 0 15px rgba(255, 51, 102, 0.5);
+  transform: scale(1.05);
+}
+
 .positive {
   color: var(--success);
   font-weight: 600;
