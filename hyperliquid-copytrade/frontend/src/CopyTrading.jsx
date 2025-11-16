@@ -167,6 +167,18 @@ function CopyTrading() {
                 </span>
               </div>
               <div className="stat-item">
+                <span className="stat-label">Unrealized</span>
+                <span className={`stat-value ${(status.unrealized_pnl || 0) >= 0 ? 'positive' : 'negative'}`}>
+                  ${(status.unrealized_pnl || 0)?.toFixed(2)}
+                </span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">Realized</span>
+                <span className={`stat-value ${(status.realized_pnl || 0) >= 0 ? 'positive' : 'negative'}`}>
+                  ${(status.realized_pnl || 0)?.toFixed(2)}
+                </span>
+              </div>
+              <div className="stat-item">
                 <span className="stat-label">ROI</span>
                 <span className={`stat-value ${status.roi >= 0 ? 'positive' : 'negative'}`}>
                   {status.roi?.toFixed(2)}%

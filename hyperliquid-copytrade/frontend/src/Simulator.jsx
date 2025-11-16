@@ -154,7 +154,8 @@ function Simulator() {
                 <tr>
                   <th>Wallet</th>
                   <th>Balance</th>
-                  <th>PnL</th>
+                  <th>PnL Total</th>
+                  <th>Unrealized</th>
                   <th>ROI</th>
                   <th>Fees</th>
                   <th>Trades</th>
@@ -172,6 +173,9 @@ function Simulator() {
                       <td>${wallet.current_balance?.toFixed(2)}</td>
                       <td className={wallet.total_pnl >= 0 ? 'positive' : 'negative'}>
                         ${wallet.total_pnl?.toFixed(2)}
+                      </td>
+                      <td className={wallet.unrealized_pnl >= 0 ? 'positive' : 'negative'} title={`Realized: $${wallet.realized_pnl?.toFixed(2)}`}>
+                        ${wallet.unrealized_pnl?.toFixed(2)}
                       </td>
                       <td className={wallet.roi >= 0 ? 'roi-positive' : 'roi-negative'}>
                         {wallet.roi?.toFixed(2)}%

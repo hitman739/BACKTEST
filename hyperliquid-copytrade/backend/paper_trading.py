@@ -243,11 +243,9 @@ class PaperTradingManager:
             position = self.open_positions[coin]
 
             # Get current price from market
-            # For simulation, we'll need to fetch current market price
-            # For now, let's use a simple approach: assume we get filled at mark price
-            try:
-                current_price = await self._get_current_price(coin)
-            except:
+            current_price = self._get_current_price(coin)
+
+            if current_price == 0:
                 logger.warning(f"Could not get current price for {coin}, skipping close")
                 return
 
@@ -324,25 +322,22 @@ class PaperTradingManager:
         # Reopen with new size
         await self._simulate_open(coin, pos_data, target_account_value)
 
-    async def _get_current_price(self, coin: str) -> float:
+    def _get_current_price(self, coin: str) -> float:
         """Get current market price for a coin"""
         try:
-            # Get meta info to find current price
-            meta = self.info.meta()
+            # Get all mids (current prices)
+            all_mids = self.info.all_mids()
 
-            for asset in meta.get("universe", []):
-                if asset.get("name") == coin:
-                    # Try to get mark price or use last trade
-                    # This is a simplified approach
-                    # In reality, we'd need to get the orderbook or recent trades
-                    pass
+            if coin in all_mids:
+                price = float(all_mids[coin])
+                return price
+            else:
+                logger.warning(f"No price found for {coin}")
+                return 0.0
 
-            # For now, return a placeholder - in production this would fetch real price
-            # This is just for simulation purposes
-            return 0.0
         except Exception as e:
             logger.error(f"Error getting price for {coin}: {e}")
-            raise
+            return 0.0
 
     async def _send_summary(self):
         """Send final summary of paper trading session"""
@@ -370,16 +365,58 @@ class PaperTradingManager:
             except Exception as e:
                 logger.error(f"Error sending update: {e}")
 
+    def _calculate_unrealized_pnl(self) -> float:
+        """Calcula el PnL no realizado de las posiciones abiertas"""
+        unrealized_pnl = 0.0
+
+        for coin, position in self.open_positions.items():
+            try:
+                # Obtener precio actual
+                current_price = self._get_current_price(coin)
+
+                if current_price == 0:
+                    logger.warning(f"No se pudo obtener precio para {coin}, ignorando PnL")
+                    continue
+
+                # Calcular PnL según si es long o short
+                size = position["size"]
+                entry_price = position["entry_price"]
+                is_long = position["is_long"]
+
+                if is_long:
+                    pnl = size * (current_price - entry_price)
+                else:
+                    pnl = abs(size) * (entry_price - current_price)
+
+                unrealized_pnl += pnl
+
+            except Exception as e:
+                logger.error(f"Error calculando PnL para {coin}: {e}")
+
+        return unrealized_pnl
+
     def get_stats(self) -> dict:
         """Get current paper trading stats"""
-        roi = ((self.current_balance - self.initial_balance) / self.initial_balance) * 100
+        # Calcular PnL no realizado (posiciones abiertas)
+        unrealized_pnl = self._calculate_unrealized_pnl()
+
+        # PnL total = realizado + no realizado
+        total_pnl_with_unrealized = self.total_pnl + unrealized_pnl
+
+        # Balance incluyendo PnL no realizado
+        balance_with_unrealized = self.current_balance + unrealized_pnl
+
+        # ROI incluyendo posiciones abiertas
+        roi = ((balance_with_unrealized - self.initial_balance) / self.initial_balance) * 100
 
         return {
             "is_running": self.is_running,
             "target_wallet": self.target_wallet,
             "initial_balance": self.initial_balance,
-            "current_balance": self.current_balance,
-            "total_pnl": self.total_pnl,
+            "current_balance": balance_with_unrealized,
+            "total_pnl": total_pnl_with_unrealized,
+            "realized_pnl": self.total_pnl,
+            "unrealized_pnl": unrealized_pnl,
             "total_fees_paid": self.total_fees_paid,
             "roi": roi,
             "trades_copied": self.trades_copied,
