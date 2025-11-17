@@ -161,7 +161,7 @@ class DeclarativeStrategy(BaseStrategy):
 
     def _evaluate_condition(self, condition: str, bar: pd.Series, prev_bar: Optional[pd.Series]) -> bool:
         """
-        Evaluate a condition string
+        Evaluate a condition string with restricted evaluation for security
 
         Args:
             condition: Condition string (e.g., "ema_fast > ema_slow")
@@ -189,8 +189,23 @@ class DeclarativeStrategy(BaseStrategy):
                 if col in eval_str and f'{col}[1]' not in condition:
                     eval_str = eval_str.replace(col, str(bar[col]))
 
-            # Evaluate
-            result = eval(eval_str)
+            # Security: Validate that the expression only contains safe characters
+            # Allow: numbers, operators, parentheses, dots (for decimals), spaces
+            import string
+            allowed_chars = string.digits + string.whitespace + '.<>=!()+-*/%'
+            if not all(c in allowed_chars for c in eval_str):
+                # Expression contains potentially unsafe characters
+                raise ValueError(f"Unsafe characters in expression: {eval_str}")
+
+            # Evaluate with restricted builtins for security
+            # Only allow comparison and arithmetic operators
+            safe_dict = {
+                '__builtins__': {
+                    'True': True,
+                    'False': False,
+                }
+            }
+            result = eval(eval_str, safe_dict, {})
             return bool(result)
 
         except Exception as e:
