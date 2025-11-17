@@ -48,7 +48,13 @@ class PaperTradingManager:
 
         # Initialize Hyperliquid Info client (solo para leer)
         base_url = constants.TESTNET_API_URL if testnet else constants.MAINNET_API_URL
-        self.info = Info(base_url, skip_ws=True)
+        try:
+            self.info = Info(base_url, skip_ws=True)
+            logger.info(f"✅ Connected to Hyperliquid API")
+        except Exception as e:
+            logger.warning(f"⚠️ Could not connect to Hyperliquid API: {e}")
+            logger.warning(f"⚠️ Will retry on start()")
+            self.info = None
 
         logger.info(f"Initialized PaperTradingManager")
         logger.info(f"Target wallet: {target_wallet}")
@@ -56,16 +62,38 @@ class PaperTradingManager:
         logger.info(f"Testnet: {testnet}")
         logger.info(f"Poll interval: {poll_interval}s")
 
-        # Calcular Fee Factor Ratios inmediatamente con datos históricos
-        self.fee_factor_ratio = self._calculate_fee_factor_ratio()
-        self.fee_factor_ratio_taker = self._calculate_fee_factor_ratio_taker()
-        logger.info(f"FFr (mixed): {self.fee_factor_ratio}")
-        logger.info(f"FFt (100% taker): {self.fee_factor_ratio_taker}")
+        # Calcular Fee Factor Ratios inmediatamente con datos históricos (si API está disponible)
+        if self.info:
+            try:
+                self.fee_factor_ratio = self._calculate_fee_factor_ratio()
+                self.fee_factor_ratio_taker = self._calculate_fee_factor_ratio_taker()
+                logger.info(f"FFr (mixed): {self.fee_factor_ratio}")
+                logger.info(f"FFt (100% taker): {self.fee_factor_ratio_taker}")
+            except Exception as e:
+                logger.warning(f"Could not calculate initial fee factors: {e}")
+        else:
+            logger.info("Skipping fee factor calculation (API not available)")
 
     async def start(self):
         """Start paper trading"""
         self.is_running = True
         logger.info("Starting paper trading...")
+
+        # Si no se pudo conectar en __init__, intentar ahora
+        if not self.info:
+            base_url = constants.TESTNET_API_URL if self.testnet else constants.MAINNET_API_URL
+            try:
+                logger.info("Retrying connection to Hyperliquid API...")
+                self.info = Info(base_url, skip_ws=True)
+                logger.info("✅ Connected to Hyperliquid API")
+            except Exception as e:
+                logger.error(f"❌ Still cannot connect to Hyperliquid API: {e}")
+                await self._send_update({
+                    "type": "error",
+                    "message": "Cannot connect to Hyperliquid API. Please check your connection or wait for rate limit to reset."
+                })
+                self.is_running = False
+                return
 
         await self._send_update({
             "type": "info",
