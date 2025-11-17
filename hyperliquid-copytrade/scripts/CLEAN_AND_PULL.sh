@@ -8,9 +8,10 @@ echo "🧹 CLEANING AND PULLING LATEST CHANGES"
 echo "=================================================="
 echo ""
 
-# Navigate to repo root
-cd "$(dirname "$0")"
-REPO_ROOT=$(pwd)
+# Navigate to repo root (script está en scripts/, subimos un nivel)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+cd "$REPO_ROOT"
 
 echo "📍 Working in: $REPO_ROOT"
 echo ""

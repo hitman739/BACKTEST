@@ -7,8 +7,9 @@ echo "=================================================="
 echo "🚀 INICIANDO SIMULADOR DE COPY TRADING"
 echo "=================================================="
 
-# Directorio base
-BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Directorio base (el script está en scripts/, subimos un nivel)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BASE_DIR="$(dirname "$SCRIPT_DIR")"
 BACKEND_DIR="$BASE_DIR/backend"
 FRONTEND_DIR="$BASE_DIR/frontend"
 
