@@ -21,16 +21,27 @@ class HyperliquidIndexer:
     def __init__(self, database: Database, testnet: bool = False):
         self.database = database
         self.testnet = testnet
-        self.info = Info(
-            constants.TESTNET_API_URL if testnet else constants.MAINNET_API_URL,
-            skip_ws=False  # Enable WebSocket
-        )
+        self.info = None  # Lazy initialization
 
         # Track active subscriptions
         self.active_wallets: Set[str] = set()
         self.subscription_ids: Dict[str, int] = {}
 
         logger.info(f"Initialized HyperliquidIndexer (testnet={testnet})")
+
+    def _get_info(self) -> Info:
+        """Lazy initialization of Info object"""
+        if self.info is None:
+            try:
+                self.info = Info(
+                    constants.TESTNET_API_URL if self.testnet else constants.MAINNET_API_URL,
+                    skip_ws=False  # Enable WebSocket
+                )
+                logger.info("Hyperliquid Info client initialized")
+            except Exception as e:
+                logger.error(f"Failed to initialize Hyperliquid Info client: {e}")
+                raise
+        return self.info
 
     async def start(self):
         """Start the indexer"""
@@ -72,7 +83,7 @@ class HyperliquidIndexer:
         """Sync historical data via REST API (one-time)"""
         try:
             # Get user state (positions)
-            user_state = self.info.user_state(wallet_address)
+            user_state = self._get_info().user_state(wallet_address)
 
             if user_state and "assetPositions" in user_state:
                 for asset_position in user_state["assetPositions"]:
@@ -84,7 +95,7 @@ class HyperliquidIndexer:
                             self.database.upsert_position(wallet_address, position)
 
             # Get historical fills
-            fills = self.info.user_fills(wallet_address)
+            fills = self._get_info().user_fills(wallet_address)
 
             if fills:
                 logger.info(f"Syncing {len(fills)} historical fills for {wallet_address}")
@@ -108,7 +119,7 @@ class HyperliquidIndexer:
                 "user": wallet_address
             }
 
-            self.info.subscribe(user_events_sub, self._handle_user_event)
+            self._get_info().subscribe(user_events_sub, self._handle_user_event)
             logger.info(f"📡 Subscribed to userEvents for {wallet_address}")
 
             # Subscribe to userFills (trade executions)
@@ -117,7 +128,7 @@ class HyperliquidIndexer:
                 "user": wallet_address
             }
 
-            self.info.subscribe(user_fills_sub, self._handle_user_fill)
+            self._get_info().subscribe(user_fills_sub, self._handle_user_fill)
             logger.info(f"📡 Subscribed to userFills for {wallet_address}")
 
             # Subscribe to userFundings (funding payments)
@@ -126,7 +137,7 @@ class HyperliquidIndexer:
                 "user": wallet_address
             }
 
-            self.info.subscribe(user_fundings_sub, self._handle_user_funding)
+            self._get_info().subscribe(user_fundings_sub, self._handle_user_funding)
             logger.info(f"📡 Subscribed to userFundings for {wallet_address}")
 
         except Exception as e:

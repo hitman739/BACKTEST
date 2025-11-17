@@ -21,10 +21,21 @@ class MetricsCalculator:
     def __init__(self, database: Database, testnet: bool = False):
         self.database = database
         self.testnet = testnet
-        self.info = Info(
-            constants.TESTNET_API_URL if testnet else constants.MAINNET_API_URL,
-            skip_ws=True
-        )
+        self.info = None  # Lazy initialization
+
+    def _get_info(self) -> Info:
+        """Lazy initialization of Info object"""
+        if self.info is None:
+            try:
+                self.info = Info(
+                    constants.TESTNET_API_URL if self.testnet else constants.MAINNET_API_URL,
+                    skip_ws=True
+                )
+                logger.info("Hyperliquid Info client initialized for metrics")
+            except Exception as e:
+                logger.error(f"Failed to initialize Hyperliquid Info client: {e}")
+                raise
+        return self.info
 
     def calculate_metrics(self, wallet_address: str) -> Dict:
         """
@@ -88,7 +99,7 @@ class MetricsCalculator:
 
         if positions:
             try:
-                all_mids = self.info.all_mids()
+                all_mids = self._get_info().all_mids()
             except Exception as e:
                 logger.warning(f"Could not fetch prices: {e}")
                 all_mids = {}
