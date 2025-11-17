@@ -41,6 +41,12 @@ class AddWalletRequest(BaseModel):
     initial_balance: float = 10000.0
 
 
+class AddWalletLegacyRequest(BaseModel):
+    target_wallet: str
+    testnet: bool = False
+    initial_balance: float = 10000.0
+
+
 class WebSocketManager:
     """Manage WebSocket connections for real-time updates"""
 
@@ -183,6 +189,20 @@ async def add_wallet(request: AddWalletRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/add-wallet")
+async def add_wallet_legacy(request: AddWalletLegacyRequest):
+    """
+    Legacy endpoint for adding wallet (alias for /wallet/add)
+    Supports the Simulator.jsx frontend component
+    """
+    # Convert legacy format to new format
+    new_request = AddWalletRequest(
+        wallet_address=request.target_wallet,
+        initial_balance=request.initial_balance
+    )
+    return await add_wallet(new_request)
+
+
 @app.delete("/wallet/{wallet_address}")
 async def remove_wallet(wallet_address: str):
     """Remove a wallet from tracking"""
@@ -199,6 +219,15 @@ async def remove_wallet(wallet_address: str):
     except Exception as e:
         logger.error(f"Error removing wallet: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/remove-wallet/{wallet_address}")
+async def remove_wallet_legacy(wallet_address: str):
+    """
+    Legacy endpoint for removing wallet (alias for /wallet/{address})
+    Supports the Simulator.jsx frontend component
+    """
+    return await remove_wallet(wallet_address)
 
 
 @app.get("/wallet/{wallet_address}/summary")
