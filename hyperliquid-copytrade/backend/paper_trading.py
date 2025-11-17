@@ -24,13 +24,15 @@ class PaperTradingManager:
         target_wallet: str,
         initial_balance: float = 10000.0,  # $10k inicial
         testnet: bool = True,
-        callback: Optional[Callable] = None
+        callback: Optional[Callable] = None,
+        poll_interval: int = 5  # Polling interval in seconds
     ):
         self.target_wallet = target_wallet
         self.initial_balance = initial_balance
         self.current_balance = initial_balance
         self.testnet = testnet
         self.callback = callback
+        self.poll_interval = poll_interval
 
         # State
         self.is_running = False
@@ -52,6 +54,7 @@ class PaperTradingManager:
         logger.info(f"Target wallet: {target_wallet}")
         logger.info(f"Initial balance: ${initial_balance:,.2f}")
         logger.info(f"Testnet: {testnet}")
+        logger.info(f"Poll interval: {poll_interval}s")
 
         # Calcular Fee Factor Ratios inmediatamente con datos históricos
         self.fee_factor_ratio = self._calculate_fee_factor_ratio()
@@ -109,7 +112,7 @@ class PaperTradingManager:
         try:
             while self.is_running:
                 await self._check_and_simulate()
-                await asyncio.sleep(15)  # Check every 15 seconds (reduced from 5 to avoid rate limiting)
+                await asyncio.sleep(self.poll_interval)  # Dynamic interval based on wallet count
 
         except Exception as e:
             logger.error(f"Error in paper trading loop: {e}")
@@ -118,6 +121,11 @@ class PaperTradingManager:
                 "message": f"Error: {str(e)}"
             })
             self.is_running = False
+
+    def update_poll_interval(self, new_interval: int):
+        """Update polling interval dynamically"""
+        self.poll_interval = new_interval
+        logger.info(f"Updated poll interval to {new_interval}s for {self.target_wallet}")
 
     async def stop(self):
         """Stop paper trading"""

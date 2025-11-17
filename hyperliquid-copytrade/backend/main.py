@@ -31,6 +31,51 @@ copy_manager: Optional[CopyTradeManager] = None
 paper_managers: dict[str, PaperTradingManager] = {}  # Multiple paper trading sessions
 MAX_PAPER_WALLETS = 15  # Maximum number of wallets to test simultaneously
 
+# Hyperliquid API rate limits
+# REST API: 1200 weight per minute, user_state() = 20 weight
+# Max requests/min: 1200 / 20 = 60
+HYPERLIQUID_MAX_REQUESTS_PER_MIN = 60
+
+
+def calculate_optimal_poll_interval(num_wallets: int) -> int:
+    """
+    Calculate optimal polling interval based on number of active wallets
+    to stay within Hyperliquid API rate limits.
+
+    Hyperliquid limits: 1200 weight/min, user_state() = 20 weight
+    Max requests/min: 60
+
+    Formula: interval = max(5, ceil(num_wallets * 1.2))
+    - 1-4 wallets: 5 seconds
+    - 5 wallets: 6 seconds
+    - 6 wallets: 8 seconds
+    - 10 wallets: 12 seconds
+    """
+    if num_wallets == 0:
+        return 5
+
+    # Calculate minimum interval to stay under rate limit
+    # num_wallets * (60 / interval) <= 60
+    # => interval >= num_wallets
+
+    # Add 20% safety margin
+    import math
+    optimal_interval = math.ceil(num_wallets * 1.2)
+
+    # Never go below 5 seconds (too aggressive)
+    return max(5, optimal_interval)
+
+
+def update_all_poll_intervals():
+    """Update poll intervals for all active wallets based on current count"""
+    num_wallets = len(paper_managers)
+    optimal_interval = calculate_optimal_poll_interval(num_wallets)
+
+    logger.info(f"📊 Updating poll intervals: {num_wallets} wallets → {optimal_interval}s interval")
+
+    for manager in paper_managers.values():
+        manager.update_poll_interval(optimal_interval)
+
 
 class StartCopyRequest(BaseModel):
     api_key: str = ""
@@ -269,12 +314,17 @@ async def add_wallet(request: AddWalletRequest):
         if len(paper_managers) >= MAX_PAPER_WALLETS:
             raise HTTPException(status_code=400, detail=f"Maximum {MAX_PAPER_WALLETS} wallets allowed")
 
-        # Create new paper trading manager
+        # Calculate optimal poll interval for new wallet count
+        new_wallet_count = len(paper_managers) + 1
+        optimal_interval = calculate_optimal_poll_interval(new_wallet_count)
+
+        # Create new paper trading manager with optimal interval
         manager = PaperTradingManager(
             target_wallet=request.target_wallet,
             initial_balance=request.initial_balance,
             testnet=request.testnet,
-            callback=broadcast_update
+            callback=broadcast_update,
+            poll_interval=optimal_interval
         )
 
         # Start monitoring in background
@@ -282,6 +332,9 @@ async def add_wallet(request: AddWalletRequest):
 
         # Add to dict
         paper_managers[request.target_wallet] = manager
+
+        # Update all existing wallets to use new optimal interval
+        update_all_poll_intervals()
 
         await broadcast_update({
             "type": "wallet_added",
@@ -319,6 +372,9 @@ async def remove_wallet(wallet: str):
 
         # Remove from dict
         del paper_managers[wallet]
+
+        # Update poll intervals for remaining wallets
+        update_all_poll_intervals()
 
         await broadcast_update({
             "type": "wallet_removed",
