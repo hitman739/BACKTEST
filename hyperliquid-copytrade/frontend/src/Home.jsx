@@ -17,17 +17,23 @@ function Home() {
           onClick={() => navigate('/copytrading')}
         >
           <div className="module-icon">⚡</div>
-          <h2 className="module-title">COPY TRADING</h2>
-          <p className="module-description">Real trading with live accounts</p>
+          <h2 className="module-title">ULTRA COPY TRADING</h2>
+          <p className="module-description">Real trading with {'<'}100ms latency</p>
+          <div style={{ fontSize: '0.8rem', color: '#888', marginTop: '10px' }}>
+            Requires: ./start_ultra.sh
+          </div>
         </div>
 
         <div
           className="module module-simulator"
           onClick={() => navigate('/simulator')}
         >
-          <div className="module-icon">🎯</div>
+          <div className="module-icon">📊</div>
           <h2 className="module-title">SIMULATOR</h2>
-          <p className="module-description">Test wallets with paper money</p>
+          <p className="module-description">Test multiple wallets with fake money</p>
+          <div style={{ fontSize: '0.8rem', color: '#888', marginTop: '10px' }}>
+            Requires: ./start_v2.sh
+          </div>
         </div>
       </div>
 
