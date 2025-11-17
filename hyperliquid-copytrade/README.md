@@ -1,197 +1,245 @@
-# Hyperliquid Copy Trading App
+# Hyperliquid Copy Trading App - Unified Backend
 
-Sistema de copy trading para Hyperliquid con autenticación de usuarios y gestión de wallets.
+Sistema completo de copy trading para Hyperliquid con **dos módulos que corren simultáneamente**:
+- 🎮 **Simulator**: Simulación segura de copy trading sin dinero real
+- ⚡ **Ultra Copy Trading**: Copy trading REAL en Hyperliquid
 
 ## 🚀 Características
 
-- **Autenticación de usuarios**: Sistema completo de registro/login con JWT
-- **Gestión de wallets**: Conecta tu wallet de Hyperliquid de forma segura
-- **Validación en tiempo real**: Verifica automáticamente las wallets contra la API de Hyperliquid
-- **Interfaz moderna**: UI con React, TailwindCSS y diseño responsivo
-- **Backend robusto**: FastAPI con SQLAlchemy y encriptación de datos sensibles
+### Backend Unificado
+- **Un solo servidor** que corre ambos módulos simultáneamente
+- **Puerto único** (8000) con rutas organizadas por módulo
+- **Sin necesidad de parar/arrancar** procesos entre módulos
+- **API REST completa** con documentación automática (Swagger)
+
+### Módulo Simulator (`/api/simulator`)
+- Simula copy trading sin ejecutar trades reales
+- Perfecto para probar estrategias
+- Tracking completo de P&L simulado
+- Sin riesgo financiero
+
+### Módulo Ultra Copy Trading (`/api/ultra`)
+- **Copy trading REAL** en Hyperliquid
+- Monitoreo via WebSocket de traders objetivo
+- Ejecución automática de trades
+- Gestión de posiciones en tiempo real
+- ⚠️ **ADVERTENCIA**: Ejecuta trades reales con dinero real
+
+### Autenticación y Seguridad
+- Sistema completo de registro/login con JWT
+- Gestión de wallets de Hyperliquid
+- Validación en tiempo real contra Hyperliquid API
+- Encriptación de datos sensibles
+- Rutas protegidas con Bearer tokens
 
 ## 📋 Requisitos
 
 - Python 3.10+
-- Node.js 18+
-- npm o yarn
+- Node.js 18+ (para el frontend)
+- pip y virtualenv
+- Cuenta de Hyperliquid (para Ultra Copy Trading)
 
-## 🛠️ Instalación
+## 🛠️ Instalación Rápida
 
-### Backend
+### Backend (Un solo comando)
 
-1. Navega al directorio del backend:
 ```bash
 cd hyperliquid-copytrade/backend
+./start.sh --reload
 ```
 
-2. Instala las dependencias:
-```bash
-pip install -r requirements.txt
-```
+Eso es todo! El script automáticamente:
+1. ✅ Crea el virtual environment
+2. ✅ Instala todas las dependencias
+3. ✅ Inicializa la base de datos
+4. ✅ Arranca el servidor con ambos módulos
 
-3. Crea el archivo `.env` copiando el ejemplo:
-```bash
-cp .env.example .env
-```
-
-4. Genera claves secretas seguras:
-```bash
-# En Python
-python -c "import secrets; print(secrets.token_hex(32))"
-```
-
-Actualiza `SECRET_KEY` y `ENCRYPTION_KEY` en tu archivo `.env`.
-
-5. Inicia el servidor:
-```bash
-python main.py
-```
-
-El backend estará disponible en `http://localhost:8000`
+**El servidor estará disponible en:** `http://localhost:8000`
 
 ### Frontend
 
-1. Navega al directorio del frontend:
 ```bash
 cd hyperliquid-copytrade/frontend
-```
-
-2. Instala las dependencias:
-```bash
 npm install
-```
-
-3. Inicia el servidor de desarrollo:
-```bash
 npm run dev
 ```
 
-El frontend estará disponible en `http://localhost:5173`
+**El frontend estará disponible en:** `http://localhost:5173`
 
-## 📖 Uso
+## 📖 Uso del Backend Unificado
 
-### 1. Registro de Usuario
+### Arrancar el servidor
 
-1. Abre `http://localhost:5173` en tu navegador
-2. Haz clic en "Register"
-3. Ingresa tu email y contraseña (mínimo 8 caracteres, debe incluir letras y números)
-4. Haz clic en "Create account"
-
-### 2. Login
-
-1. En la página de login, ingresa tu email y contraseña
-2. Haz clic en "Sign in"
-3. Serás redirigido al dashboard
-
-### 3. Conectar Wallet de Hyperliquid
-
-1. En el dashboard, encontrarás la sección "Connect Hyperliquid Wallet"
-2. Ingresa tu dirección de wallet de Hyperliquid (formato: `0x...`)
-3. Haz clic en "Connect Wallet"
-4. El sistema validará automáticamente que la wallet existe en Hyperliquid
-
-Ejemplo de wallet válida:
-```
-0x9b55c8c948f988bcbe404cd070fc9ffffab8d31b
+**Modo desarrollo (con auto-reload):**
+```bash
+cd hyperliquid-copytrade/backend
+./start.sh --reload
 ```
 
-## 🏗️ Arquitectura
-
-### Backend (FastAPI)
-
-```
-backend/
-├── auth/
-│   ├── security.py          # JWT y hashing de contraseñas
-│   ├── encryption.py        # Encriptación de API keys
-│   └── dependencies.py      # Dependencias de autenticación
-├── models/
-│   ├── database.py          # Configuración de base de datos
-│   └── user.py              # Modelo de usuario
-├── routes/
-│   ├── auth.py              # Endpoints de autenticación
-│   └── account.py           # Gestión de cuenta y wallet
-├── services/
-│   └── hyperliquid.py       # Integración con Hyperliquid API
-├── config.py                # Configuración global
-└── main.py                  # Aplicación principal
+**Modo producción:**
+```bash
+cd hyperliquid-copytrade/backend
+./start.sh
 ```
 
-### Frontend (React + Vite)
-
-```
-frontend/
-├── src/
-│   ├── api/
-│   │   └── client.js        # Cliente Axios configurado
-│   ├── components/
-│   │   ├── LoginForm.jsx    # Formulario de login
-│   │   ├── RegisterForm.jsx # Formulario de registro
-│   │   ├── WalletSetup.jsx  # Configuración de wallet
-│   │   └── ProtectedRoute.jsx
-│   ├── pages/
-│   │   ├── Login.jsx        # Página de login/registro
-│   │   └── Dashboard.jsx    # Dashboard principal
-│   ├── App.jsx
-│   └── main.jsx
-└── index.html
+**Puerto personalizado:**
+```bash
+./start.sh --port 8080 --reload
 ```
 
-## 🔐 Seguridad
+### Parar el servidor
 
-- **Contraseñas**: Hasheadas con bcrypt
-- **Tokens**: JWT con expiración configurable
-- **API Keys**: Encriptadas con Fernet (AES-128-CBC)
-- **CORS**: Configurado solo para orígenes permitidos
-- **Validación**: Input validation en backend y frontend
+Simplemente presiona `Ctrl+C` en la terminal donde está corriendo.
 
-## 🔌 API Endpoints
+## 🌐 Endpoints Disponibles
 
-### Autenticación
+### General
+- `GET /` - Información de la API y módulos activos
+- `GET /health` - Health check
+- `GET /docs` - Documentación interactiva (Swagger UI)
 
-- `POST /api/auth/register` - Registrar nuevo usuario
+### Autenticación (`/api/auth`)
+- `POST /api/auth/register` - Registrar usuario
 - `POST /api/auth/login` - Iniciar sesión
 
-### Cuenta
+### Cuenta (`/api/account`)
+- `GET /api/account/status` - Estado de cuenta
+- `POST /api/account/set-wallet` - Configurar wallet de Hyperliquid
+- `DELETE /api/account/wallet` - Eliminar wallet
+- `GET /api/account/hyperliquid/state` - Estado de cuenta en Hyperliquid
 
-- `GET /api/account/status` - Estado de la cuenta (requiere auth)
-- `POST /api/account/set-wallet` - Configurar wallet de Hyperliquid (requiere auth)
-- `DELETE /api/account/wallet` - Eliminar wallet (requiere auth)
-- `GET /api/account/hyperliquid/state` - Estado de la cuenta en Hyperliquid (requiere auth)
+### Simulator (`/api/simulator`)
+- `POST /api/simulator/config` - Crear configuración de simulador
+- `GET /api/simulator/configs` - Listar configuraciones
+- `GET /api/simulator/config/{id}` - Ver configuración
+- `GET /api/simulator/config/{id}/positions` - Ver posiciones
+- `GET /api/simulator/config/{id}/trades` - Ver trades
+- `GET /api/simulator/config/{id}/stats` - Ver estadísticas
+- `POST /api/simulator/trade` - Simular trade
+- `POST /api/simulator/trade/close` - Cerrar trade simulado
+- `DELETE /api/simulator/config/{id}` - Eliminar configuración
 
-### Health
+### Ultra Copy Trading (`/api/ultra`)
+- `POST /api/ultra/config` - Crear configuración de copy trading
+- `GET /api/ultra/configs` - Listar configuraciones
+- `GET /api/ultra/config/{id}` - Ver configuración
+- `POST /api/ultra/config/{id}/start` - Iniciar monitoreo automático
+- `POST /api/ultra/config/{id}/stop` - Detener monitoreo
+- `GET /api/ultra/config/{id}/positions` - Ver posiciones activas
+- `GET /api/ultra/config/{id}/trades` - Ver historial de trades
+- `GET /api/ultra/config/{id}/stats` - Ver estadísticas
+- `POST /api/ultra/trade/execute` - Ejecutar trade manualmente (testing)
+- `DELETE /api/ultra/config/{id}` - Eliminar configuración
 
-- `GET /` - Información de la API
-- `GET /health` - Health check
+## 📊 Ejemplo de Uso
 
-## 🧪 Testing
-
-### Testear el Backend
-
-```bash
-cd backend
-python -c "from models.database import init_db; init_db()"
-python main.py
-```
-
-Luego en otra terminal:
+### 1. Registrarse y Login
 
 ```bash
 # Registrar usuario
 curl -X POST http://localhost:8000/api/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"email": "test@example.com", "password": "test1234"}'
+  -d '{"email": "user@example.com", "password": "password123"}'
 
 # Login
 curl -X POST http://localhost:8000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email": "test@example.com", "password": "test1234"}'
+  -d '{"email": "user@example.com", "password": "password123"}'
 ```
 
-## 📝 Configuración de Variables de Entorno
+Guarda el `access_token` que recibes.
 
-### Backend (.env)
+### 2. Conectar Wallet de Hyperliquid
+
+```bash
+curl -X POST http://localhost:8000/api/account/set-wallet \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{"wallet_address": "0x9b55c8c948f988bcbe404cd070fc9ffffab8d31b"}'
+```
+
+### 3. Usar el Simulator
+
+```bash
+# Crear configuración de simulador
+curl -X POST http://localhost:8000/api/simulator/config \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{
+    "target_trader": "0x9b55c8c948f988bcbe404cd070fc9ffffab8d31b",
+    "initial_balance": 10000,
+    "leverage": 5
+  }'
+
+# Simular un trade
+curl -X POST http://localhost:8000/api/simulator/trade \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{
+    "config_id": "CONFIG_ID",
+    "symbol": "BTC",
+    "side": "LONG",
+    "size": 0.1,
+    "price": 50000
+  }'
+```
+
+### 4. Usar Ultra Copy Trading
+
+```bash
+# Crear configuración de copy trading
+curl -X POST http://localhost:8000/api/ultra/config \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{
+    "target_trader": "0x9b55c8c948f988bcbe404cd070fc9ffffab8d31b",
+    "margin_multiplier": 1.0,
+    "testnet_mode": true
+  }'
+
+# Iniciar monitoreo automático
+curl -X POST http://localhost:8000/api/ultra/config/CONFIG_ID/start \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+## 🏗️ Arquitectura del Backend Unificado
+
+```
+hyperliquid-copytrade/backend/
+├── main.py                    # Aplicación principal (punto de entrada)
+├── config.py                  # Configuración global
+├── start.sh                   # Script de arranque
+├── requirements.txt           # Dependencias Python
+│
+├── auth/                      # Sistema de autenticación
+│   ├── security.py           # JWT y hashing
+│   ├── encryption.py         # Encriptación de API keys
+│   └── dependencies.py       # Dependencias de auth
+│
+├── models/                    # Modelos de base de datos
+│   ├── database.py           # Configuración de BD
+│   └── user.py               # Modelo de usuario
+│
+├── routes/                    # Rutas de la API
+│   ├── auth.py               # Endpoints de autenticación
+│   └── account.py            # Endpoints de cuenta
+│
+├── services/                  # Servicios externos
+│   └── hyperliquid.py        # Integración con Hyperliquid API
+│
+└── modules/                   # Módulos de copy trading
+    ├── simulator/            # Módulo de simulación
+    │   ├── service.py        # Lógica de simulador
+    │   └── routes.py         # Endpoints de simulador
+    │
+    └── ultra/                # Módulo de copy trading real
+        ├── service.py        # Lógica de ultra copy
+        └── routes.py         # Endpoints de ultra copy
+```
+
+## 🔐 Configuración de Variables de Entorno
+
+Copia `.env.example` a `.env` y actualiza los valores:
 
 ```bash
 # Security
@@ -214,40 +262,103 @@ HYPERLIQUID_API_URL=https://api.hyperliquid.xyz/info
 HYPERLIQUID_TESTNET=true
 ```
 
+## 🧪 Testing
+
+### Verificar que el servidor está corriendo
+
+```bash
+# Health check
+curl http://localhost:8000/health
+
+# Ver información de módulos
+curl http://localhost:8000/
+```
+
+### Explorar la API interactivamente
+
+Abre en tu navegador: `http://localhost:8000/docs`
+
+Verás la documentación Swagger con todos los endpoints disponibles y podrás probarlos directamente.
+
+## ⚠️ Diferencias entre Simulator y Ultra
+
+| Característica | Simulator | Ultra Copy Trading |
+|----------------|-----------|-------------------|
+| Ejecuta trades reales | ❌ No | ✅ Sí |
+| Requiere wallet conectada | ❌ No | ✅ Sí |
+| Riesgo financiero | ❌ Ninguno | ⚠️ Real |
+| WebSocket monitoring | ❌ No | ✅ Sí |
+| Ideal para | Testing, aprendizaje | Trading real |
+| Costo de fees | ❌ Ninguno | ✅ Fees reales |
+
 ## 🚧 Próximas Funcionalidades
 
-- [ ] Copy trading en tiempo real
-- [ ] WebSocket para seguimiento de trades
-- [ ] Dashboard con estadísticas de traders
-- [ ] Configuración de estrategias de copy trading
-- [ ] Sistema de notificaciones
-- [ ] Gestión de riesgos avanzada
-- [ ] Historial de trades copiados
-- [ ] Métricas de performance
+- [ ] WebSocket real-time updates para frontend
+- [ ] Dashboard visual con gráficos
+- [ ] Sistema de notificaciones (email/Telegram)
+- [ ] Backtesting integrado
+- [ ] Risk management avanzado
+- [ ] Multi-trader following
+- [ ] Performance analytics
+- [ ] Mobile app
+
+## 📝 Notas Importantes
+
+1. **Ambos módulos corren simultáneamente** en el mismo servidor
+2. **No necesitas parar el servidor** para cambiar entre Simulator y Ultra
+3. **Puedes usar ambos al mismo tiempo** - diferentes configuraciones pueden estar activas
+4. **Ultra Copy Trading ejecuta trades REALES** - úsalo con precaución
+5. **Empieza siempre con Simulator** para probar estrategias antes de usar dinero real
+
+## 🐛 Troubleshooting
+
+### Error: "Port 8000 already in use"
+
+```bash
+# Encuentra el proceso usando el puerto
+lsof -ti:8000 | xargs kill -9
+
+# O usa otro puerto
+./start.sh --port 8001
+```
+
+### Error: "Module not found"
+
+```bash
+# Reinstala dependencias
+cd hyperliquid-copytrade/backend
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+### Error: "Database locked"
+
+```bash
+# Elimina la base de datos y vuelve a crearla
+rm copytrade.db
+# El servidor la recreará automáticamente al arrancar
+```
+
+## 📞 Soporte
+
+Para bugs o preguntas:
+1. Revisa la documentación en `/docs`
+2. Verifica los logs del servidor
+3. Crea un issue en el repositorio
 
 ## 📄 Licencia
 
 Este proyecto es privado y confidencial.
 
-## 🤝 Contribuir
+---
 
-Para contribuir al proyecto:
+**¡Listo para empezar!** 🚀
 
-1. Crea una rama feature: `git checkout -b feature/nueva-funcionalidad`
-2. Commit tus cambios: `git commit -m 'Add nueva funcionalidad'`
-3. Push a la rama: `git push origin feature/nueva-funcionalidad`
-4. Abre un Pull Request
+Simplemente ejecuta:
 
-## 🐛 Reportar Bugs
+```bash
+cd hyperliquid-copytrade/backend
+./start.sh --reload
+```
 
-Si encuentras algún bug, por favor crea un issue con:
-
-- Descripción del problema
-- Pasos para reproducir
-- Comportamiento esperado vs actual
-- Screenshots (si aplica)
-- Información del entorno (OS, browser, versiones)
-
-## 📞 Soporte
-
-Para soporte o preguntas, contacta al equipo de desarrollo.
+Y tendrás ambos módulos (Simulator y Ultra) corriendo simultáneamente en `http://localhost:8000`
