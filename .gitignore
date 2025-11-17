@@ -38,6 +38,7 @@ data/
 *.parquet
 *.csv
 *.h5
+*.db
 
 # Reports (generated output)
 reports/
