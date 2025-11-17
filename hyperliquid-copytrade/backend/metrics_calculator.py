@@ -199,8 +199,10 @@ class MetricsCalculator:
 
                 if metrics:
                     self.database.save_metrics(wallet, metrics)
+                    fee_factor = metrics['fee_factor_mixed']
+                    fee_str = f"{fee_factor:.3f}" if fee_factor is not None else "N/A"
                     logger.info(f"✅ Updated metrics for {wallet}: PnL=${metrics['total_pnl']:.2f}, "
-                               f"FFr={metrics['fee_factor_mixed']:.3f}")
+                               f"FFr={fee_str}")
             except Exception as e:
                 logger.error(f"Error updating metrics for {wallet}: {e}")
 

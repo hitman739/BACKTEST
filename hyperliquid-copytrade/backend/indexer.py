@@ -30,14 +30,14 @@ class HyperliquidIndexer:
         logger.info(f"Initialized HyperliquidIndexer (testnet={testnet})")
 
     def _get_info(self) -> Info:
-        """Lazy initialization of Info object"""
+        """Lazy initialization of Info object (REST API only, no WebSocket)"""
         if self.info is None:
             try:
                 self.info = Info(
                     constants.TESTNET_API_URL if self.testnet else constants.MAINNET_API_URL,
-                    skip_ws=False  # Enable WebSocket
+                    skip_ws=True  # Skip WebSocket (use REST API only to avoid 403 errors)
                 )
-                logger.info("Hyperliquid Info client initialized")
+                logger.info("Hyperliquid Info client initialized (REST API only)")
             except Exception as e:
                 logger.error(f"Failed to initialize Hyperliquid Info client: {e}")
                 raise
@@ -111,37 +111,22 @@ class HyperliquidIndexer:
             logger.error(f"Error syncing historical data for {wallet_address}: {e}")
 
     async def _subscribe_to_wallet(self, wallet_address: str):
-        """Subscribe to WebSocket feeds for a wallet"""
+        """Subscribe to WebSocket feeds for a wallet (if WebSocket is enabled)"""
         try:
-            # Subscribe to userEvents (comprehensive stream: fills, orders, positions)
-            user_events_sub = {
-                "type": "userEvents",
-                "user": wallet_address
-            }
+            # Check if WebSocket is available (we're using skip_ws=True to avoid 403 errors)
+            info = self._get_info()
 
-            self._get_info().subscribe(user_events_sub, self._handle_user_event)
-            logger.info(f"📡 Subscribed to userEvents for {wallet_address}")
+            # Since we're using skip_ws=True, we can't subscribe to WebSocket
+            # Data will be updated via REST API polling instead
+            logger.info(f"ℹ️  WebSocket subscriptions skipped for {wallet_address} (using REST API polling)")
+            logger.info(f"   Data will be updated via periodic REST API calls")
 
-            # Subscribe to userFills (trade executions)
-            user_fills_sub = {
-                "type": "userFills",
-                "user": wallet_address
-            }
-
-            self._get_info().subscribe(user_fills_sub, self._handle_user_fill)
-            logger.info(f"📡 Subscribed to userFills for {wallet_address}")
-
-            # Subscribe to userFundings (funding payments)
-            user_fundings_sub = {
-                "type": "userFundings",
-                "user": wallet_address
-            }
-
-            self._get_info().subscribe(user_fundings_sub, self._handle_user_funding)
-            logger.info(f"📡 Subscribed to userFundings for {wallet_address}")
+            # If we wanted to use WebSocket (when Hyperliquid allows it), we would do:
+            # user_events_sub = {"type": "userEvents", "user": wallet_address}
+            # info.subscribe(user_events_sub, self._handle_user_event)
 
         except Exception as e:
-            logger.error(f"Error subscribing to wallet {wallet_address}: {e}")
+            logger.error(f"Error in subscribe method for {wallet_address}: {e}")
 
     async def remove_wallet(self, wallet_address: str):
         """Remove a wallet from tracking"""
