@@ -1,52 +1,4 @@
-/* Simulator Page - Black & Gold Design */
-
-.page-container {
-  min-height: 100vh;
-  padding: 2rem;
-  background: linear-gradient(135deg, #000000 0%, #0a0a0a 50%, #000000 100%);
-  color: #e0e0e0;
-}
-
-.back-button {
-  padding: 0.75rem 1.5rem;
-  background: rgba(255, 215, 0, 0.1);
-  border: 1px solid rgba(255, 215, 0, 0.3);
-  border-radius: 8px;
-  color: #FFD700;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s;
-  margin-bottom: 2rem;
-}
-
-.back-button:hover {
-  background: rgba(255, 215, 0, 0.2);
-  border-color: #FFD700;
-  box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
-  transform: translateX(-5px);
-}
-
-.page-header {
-  text-align: center;
-  margin-bottom: 3rem;
-}
-
-.page-title {
-  font-size: 3rem;
-  font-weight: 700;
-  background: linear-gradient(90deg, #FFD700 0%, #FFED4E 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin-bottom: 0.5rem;
-  letter-spacing: 2px;
-}
-
-.page-subtitle {
-  font-size: 1.1rem;
-  color: #999;
-  letter-spacing: 1px;
-}
+/* Simulator-specific styles */
 
 /* Wallets Section */
 .wallets-section {
@@ -101,7 +53,7 @@
 .trader-card {
   background: rgba(10, 10, 10, 0.95);
   border: 1px solid rgba(255, 215, 0, 0.3);
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 1.5rem;
   transition: all 0.3s;
 }
@@ -278,8 +230,8 @@
 /* Add Wallet Card */
 .add-wallet-card {
   background: rgba(10, 10, 10, 0.95);
-  border: 2px solid rgba(255, 215, 0, 0.3);
-  border-radius: 12px;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 10px;
   padding: 2rem;
   max-width: 800px;
   margin: 0 auto 2rem;
@@ -454,10 +406,6 @@
 
   .add-button {
     width: 100%;
-  }
-
-  .page-title {
-    font-size: 2rem;
   }
 
   .section-header {
