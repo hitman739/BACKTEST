@@ -32,9 +32,11 @@ Cuando presionas "Start simulation" para una wallet:
 - Solo se procesan fills con `timestamp >= start_time`
 - **NUNCA** se incluyen trades anteriores
 
-### 3. Copiado Proporcional
+### 3. Copiado Proporcional con Leverage
 
-La clave del sistema: **copiar el mismo % de riesgo**.
+La clave del sistema: **copiar el mismo % de MARGEN usado**, considerando el leverage.
+
+⚠️ **IMPORTANTE**: El leverage multiplica el notional, pero NO el riesgo real. El riesgo real es el **margen usado**.
 
 Cuando el trader abre un trade:
 
@@ -42,22 +44,46 @@ Cuando el trader abre un trade:
 # 1. Calcular notional del trader
 notional_trader = abs(size_trader * price_fill)
 
-# 2. Obtener equity del trader
+# 2. Obtener leverage del trader (de Hyperliquid API)
+leverage_trader = [leverage de la posición del trader]
+
+# 3. Calcular MARGEN USADO (no notional)
+# El margen es el dinero real en riesgo
+margin_used_trader = notional_trader / leverage_trader
+
+# 4. Obtener equity del trader
 equity_trader = [de Hyperliquid API]
 
-# 3. Calcular % de riesgo
-risk_frac = notional_trader / equity_trader
+# 5. Calcular % de riesgo basado en MARGEN
+risk_frac = margin_used_trader / equity_trader
 
-# 4. Aplicar mismo % a la simulación
-notional_sim = risk_frac * equity_sim_actual
+# 6. Aplicar mismo % de margen a la simulación
+margin_sim = risk_frac * equity_sim_actual
+
+# 7. Aplicar el MISMO LEVERAGE que el trader
+notional_sim = margin_sim * leverage_trader
 size_sim = notional_sim / price_fill
 ```
 
-**Ejemplo:**
-- Trader tiene $3,000,000
-- Abre posición de $150,000 → usa 5% de su equity
-- Simulación tiene $10,000
-- Abre posición de $500 → usa 5% de su equity
+**Ejemplo con Leverage:**
+- **Trader**:
+  - Equity: $3,000,000
+  - Abre: 50 BTC @ $100k = $5M notional
+  - Leverage: 10x
+  - **Margen usado**: $5M / 10 = $500k
+  - **Risk %**: $500k / $3M = 16.67%
+
+- **Simulación**:
+  - Equity: $10,000
+  - Risk %: 16.67% (mismo que el trader)
+  - **Margen usado**: $10k * 16.67% = $1,667
+  - Leverage: 10x (mismo que el trader)
+  - **Notional**: $1,667 * 10 = $16,670
+  - Size: $16,670 / $100k = **0.1667 BTC**
+
+**Sin Leverage (1x):**
+- Trader: $3M equity, abre $150k → usa 5% de su equity
+- Simulación: $10k equity, abre $500 → usa 5% de su equity
 - **Mismo riesgo relativo, diferente tamaño absoluto**
 
 ### 4. Gestión de Posiciones
@@ -65,9 +91,10 @@ size_sim = notional_sim / price_fill
 Para cada símbolo, la simulación mantiene:
 - `size_sim` - Tamaño de la posición simulada
 - `avg_entry_price_sim` - Precio medio de entrada
+- `leverage` - Leverage usado (copiado del trader)
 
 Acciones:
-- **Aumentar posición**: Recalcula `avg_entry_price_sim` como promedio ponderado
+- **Aumentar posición**: Recalcula `avg_entry_price_sim` como promedio ponderado, actualiza `leverage`
 - **Reducir posición**: Calcula `realized_pnl_sim` sobre la parte cerrada
 - **Cerrar posición**: `realized_pnl_sim` y limpia posición
 
@@ -193,6 +220,7 @@ curl "http://localhost:8000/sim/snapshot?wallet=0x9b55c8c948f988bcbe404cd070fc9f
       "side": "long",
       "size_sim": 0.015,
       "avg_entry_price_sim": 95000.0,
+      "leverage": 5.0,
       "mark_price": 96500.0,
       "unrealized_pnl_pos": 22.50
     },
@@ -201,6 +229,7 @@ curl "http://localhost:8000/sim/snapshot?wallet=0x9b55c8c948f988bcbe404cd070fc9f
       "side": "short",
       "size_sim": 2.5,
       "avg_entry_price_sim": 3500.0,
+      "leverage": 3.0,
       "mark_price": 3438.0,
       "unrealized_pnl_pos": 155.00
     }
@@ -287,7 +316,9 @@ Frontend muestra estado actual
 - Equity: $3,000,000
 - Abre long BTC: 5 BTC @ $95,000
 - Notional: $475,000
-- Risk %: 15.83% de su equity
+- **Leverage: 10x**
+- **Margen usado**: $475k / 10 = $47,500
+- **Risk %**: $47,500 / $3M = 1.58% de su equity
 
 ### Simulación
 
@@ -297,14 +328,20 @@ Frontend muestra estado actual
 **Al detectar el fill:**
 
 ```python
-# Cálculo proporcional
+# Cálculo proporcional CON LEVERAGE
 notional_trader = 5 * 95000 = $475,000
+leverage_trader = 10.0  # Obtenido de Hyperliquid API
+margin_used_trader = 475000 / 10 = $47,500
+
 equity_trader = $3,000,000
-risk_frac = 475000 / 3000000 = 0.1583  # 15.83%
+risk_frac = 47500 / 3000000 = 0.0158  # 1.58% (basado en MARGEN)
 
 # Aplicar a simulación
 equity_sim_actual = $10,000  # (asumiendo que es el primer trade)
-notional_sim = 0.1583 * 10000 = $1,583.33
+margin_sim = 0.0158 * 10000 = $158.33  # Margen en simulación
+
+# Aplicar MISMO leverage que el trader
+notional_sim = 158.33 * 10 = $1,583.33
 size_sim = 1583.33 / 95000 = 0.01667 BTC
 
 # Crear posición
@@ -312,9 +349,15 @@ position = SimulatedPosition(
     symbol="BTC",
     side="long",
     size_sim=0.01667,
-    avg_entry_price_sim=95000.0
+    avg_entry_price_sim=95000.0,
+    leverage=10.0  # Mismo leverage que el trader
 )
 ```
+
+**Verificación:**
+- Trader usa 1.58% de su equity en margen
+- Simulación usa 1.58% de su equity en margen ($158.33)
+- Ambos con leverage 10x → mismo riesgo relativo ✅
 
 **Más tarde, BTC sube a $96,500:**
 

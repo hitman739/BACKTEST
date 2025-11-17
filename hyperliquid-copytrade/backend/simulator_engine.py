@@ -28,6 +28,7 @@ class SimulatedPosition:
     side: str  # "long" or "short"
     size_sim: float  # Simulated position size
     avg_entry_price_sim: float  # Average entry price for simulation
+    leverage: float = 1.0  # Leverage used (copied from trader)
 
     def get_unrealized_pnl(self, mark_price: float) -> float:
         """Calculate unrealized PnL for this position"""
@@ -85,6 +86,7 @@ class WalletSimulation:
                     "side": pos.side,
                     "size_sim": pos.size_sim,
                     "avg_entry_price_sim": pos.avg_entry_price_sim,
+                    "leverage": pos.leverage,
                     "mark_price": mark_price,
                     "unrealized_pnl_pos": pos.get_unrealized_pnl(mark_price)
                 })
@@ -177,6 +179,27 @@ class SimulatorEngine:
             for wallet, sim in self.simulations.items()
         ]
 
+    def get_trader_leverage(self, wallet_address: str, symbol: str) -> float:
+        """Get the leverage the trader is using for a specific symbol"""
+        try:
+            user_state = self.info.user_state(wallet_address)
+            if not user_state or 'assetPositions' not in user_state:
+                return 1.0  # Default to 1x if can't determine
+
+            # Find position for this symbol
+            for position in user_state['assetPositions']:
+                if position['position']['coin'] == symbol:
+                    leverage = float(position['position']['leverage']['value'])
+                    logger.debug(f"Trader leverage for {symbol}: {leverage}x")
+                    return leverage
+
+            # If no position found, use default
+            return 1.0
+
+        except Exception as e:
+            logger.error(f"Error getting trader leverage: {e}")
+            return 1.0  # Safe default
+
     async def process_fill(self, wallet_address: str, fill: dict):
         """Process a real fill from the trader and simulate it proportionally"""
         simulation = self.simulations.get(wallet_address)
@@ -195,26 +218,32 @@ class SimulatorEngine:
             price_fill = float(fill['px'])
             side = fill['side']  # 'A' (ask/sell) or 'B' (bid/buy)
 
-            # Determine if this is opening long, opening short, closing long, or closing short
-            # For simplicity: 'B' (buy) = long, 'A' (sell) = short for opening
-            # But we need to check current position to know if opening or closing
-
+            # Get trader's current position to determine leverage
             current_pos = simulation.positions.get(symbol)
 
             # Calculate notional value of trader's fill
             notional_trader = size_trader * price_fill
 
+            # Get trader's leverage for this symbol
+            leverage_trader = self.get_trader_leverage(wallet_address, symbol)
+
+            # Calculate MARGIN USED (not notional) considering leverage
+            # margin_used = notional / leverage
+            margin_used_trader = notional_trader / leverage_trader
+
             # Get trader's current equity
             trader_equity = simulation.last_trader_equity or 100000.0
 
-            # Calculate risk fraction
-            risk_frac = notional_trader / trader_equity
+            # Calculate risk fraction based on MARGIN, not notional
+            risk_frac = margin_used_trader / trader_equity
 
-            # Calculate simulated notional and size
-            notional_sim = risk_frac * simulation.equity_sim_actual
+            # Calculate simulated margin and size using SAME LEVERAGE
+            margin_sim = risk_frac * simulation.equity_sim_actual
+            notional_sim = margin_sim * leverage_trader  # Apply same leverage
             size_sim = notional_sim / price_fill
 
             logger.info(f"Processing fill: {symbol} {side} {size_trader} @ {price_fill}")
+            logger.info(f"Leverage: {leverage_trader}x | Margin used: ${margin_used_trader:.2f}")
             logger.info(f"Risk frac: {risk_frac:.4f} | Sim size: {size_sim:.6f}")
 
             # Determine action based on side and current position
@@ -225,10 +254,11 @@ class SimulatorEngine:
                     symbol=symbol,
                     side=position_side,
                     size_sim=size_sim,
-                    avg_entry_price_sim=price_fill
+                    avg_entry_price_sim=price_fill,
+                    leverage=leverage_trader
                 )
                 simulation.trades_count_sim += 1
-                logger.info(f"Opened {position_side} position: {size_sim:.6f} {symbol} @ {price_fill}")
+                logger.info(f"Opened {position_side} position: {size_sim:.6f} {symbol} @ {price_fill} (leverage: {leverage_trader}x)")
 
             else:
                 # There's an existing position
@@ -247,9 +277,10 @@ class SimulatorEngine:
 
                     current_pos.size_sim = new_size
                     current_pos.avg_entry_price_sim = new_avg_price
+                    current_pos.leverage = leverage_trader  # Update leverage
                     simulation.trades_count_sim += 1
 
-                    logger.info(f"Increased position: {new_size:.6f} {symbol} @ {new_avg_price:.2f}")
+                    logger.info(f"Increased position: {new_size:.6f} {symbol} @ {new_avg_price:.2f} (leverage: {leverage_trader}x)")
 
                 else:
                     # Closing or reducing position (opposite direction)
@@ -284,9 +315,10 @@ class SimulatorEngine:
                             symbol=symbol,
                             side=new_side,
                             size_sim=reverse_size,
-                            avg_entry_price_sim=price_fill
+                            avg_entry_price_sim=price_fill,
+                            leverage=leverage_trader
                         )
-                        logger.info(f"Reversed to {new_side} {reverse_size:.6f} {symbol} @ {price_fill}")
+                        logger.info(f"Reversed to {new_side} {reverse_size:.6f} {symbol} @ {price_fill} (leverage: {leverage_trader}x)")
 
         except Exception as e:
             logger.error(f"Error processing fill: {e}", exc_info=True)
