@@ -109,10 +109,20 @@ class SimulatorEngine:
 
     def __init__(self, testnet: bool = False):
         self.testnet = testnet
-        self.info = Info(constants.TESTNET_API_URL if testnet else constants.MAINNET_API_URL)
+        self.info = None  # Lazy initialization
         self.simulations: Dict[str, WalletSimulation] = {}  # wallet -> simulation
         self.running = False
         self.update_task = None
+
+    def _get_info(self) -> Info:
+        """Lazy initialization of Info object"""
+        if self.info is None:
+            try:
+                self.info = Info(constants.TESTNET_API_URL if self.testnet else constants.MAINNET_API_URL)
+            except Exception as e:
+                logger.error(f"Failed to initialize Hyperliquid Info client: {e}")
+                raise
+        return self.info
 
     async def start_simulation(self, wallet_address: str) -> WalletSimulation:
         """Start simulating a wallet from NOW"""
@@ -132,7 +142,7 @@ class SimulatorEngine:
 
         # Get trader's current equity
         try:
-            user_state = self.info.user_state(wallet_address)
+            user_state = self._get_info().user_state(wallet_address)
             if user_state and 'marginSummary' in user_state:
                 simulation.last_trader_equity = float(user_state['marginSummary']['accountValue'])
                 logger.info(f"Trader equity: ${simulation.last_trader_equity:,.2f}")
@@ -182,22 +192,48 @@ class SimulatorEngine:
     def get_trader_leverage(self, wallet_address: str, symbol: str) -> float:
         """Get the leverage the trader is using for a specific symbol"""
         try:
-            user_state = self.info.user_state(wallet_address)
-            if not user_state or 'assetPositions' not in user_state:
-                return 1.0  # Default to 1x if can't determine
+            user_state = self._get_info().user_state(wallet_address)
+            if not user_state:
+                logger.warning(f"Could not get user_state for {wallet_address}")
+                return 1.0
+
+            # Check if assetPositions exists
+            if 'assetPositions' not in user_state:
+                logger.debug(f"No assetPositions in user_state for {wallet_address}")
+                return 1.0
 
             # Find position for this symbol
-            for position in user_state['assetPositions']:
-                if position['position']['coin'] == symbol:
-                    leverage = float(position['position']['leverage']['value'])
-                    logger.debug(f"Trader leverage for {symbol}: {leverage}x")
-                    return leverage
+            for pos_data in user_state['assetPositions']:
+                try:
+                    # Handle different possible structures
+                    if 'position' in pos_data:
+                        position = pos_data['position']
+                        coin = position.get('coin', '')
+
+                        if coin == symbol:
+                            # Try to get leverage
+                            if 'leverage' in position:
+                                lev_data = position['leverage']
+                                if isinstance(lev_data, dict) and 'value' in lev_data:
+                                    leverage = float(lev_data['value'])
+                                elif isinstance(lev_data, (int, float, str)):
+                                    leverage = float(lev_data)
+                                else:
+                                    logger.warning(f"Unexpected leverage format: {lev_data}")
+                                    leverage = 1.0
+
+                                logger.info(f"Trader leverage for {symbol}: {leverage}x")
+                                return leverage
+                except (KeyError, ValueError, TypeError) as e:
+                    logger.debug(f"Error parsing position data: {e}")
+                    continue
 
             # If no position found, use default
+            logger.debug(f"No position found for {symbol}, using 1x leverage")
             return 1.0
 
         except Exception as e:
-            logger.error(f"Error getting trader leverage: {e}")
+            logger.error(f"Error getting trader leverage for {wallet_address}/{symbol}: {e}", exc_info=True)
             return 1.0  # Safe default
 
     async def process_fill(self, wallet_address: str, fill: dict):
@@ -213,10 +249,34 @@ class SimulatorEngine:
             return
 
         try:
-            symbol = fill['coin']
-            size_trader = abs(float(fill['sz']))  # Positive size
-            price_fill = float(fill['px'])
-            side = fill['side']  # 'A' (ask/sell) or 'B' (bid/buy)
+            # Validate fill data
+            if not fill or not isinstance(fill, dict):
+                logger.error(f"Invalid fill data: {fill}")
+                return
+
+            symbol = fill.get('coin')
+            if not symbol:
+                logger.error(f"Missing 'coin' in fill: {fill}")
+                return
+
+            size_str = fill.get('sz')
+            price_str = fill.get('px')
+            side = fill.get('side')
+
+            if not all([size_str, price_str, side]):
+                logger.error(f"Missing required fields in fill: {fill}")
+                return
+
+            try:
+                size_trader = abs(float(size_str))  # Positive size
+                price_fill = float(price_str)
+            except (ValueError, TypeError) as e:
+                logger.error(f"Invalid numeric values in fill: {fill}, error: {e}")
+                return
+
+            if size_trader <= 0 or price_fill <= 0:
+                logger.error(f"Invalid size or price in fill: size={size_trader}, price={price_fill}")
+                return
 
             # Get trader's current position to determine leverage
             current_pos = simulation.positions.get(symbol)
@@ -332,7 +392,7 @@ class SimulatorEngine:
                 return
 
             # Get all mids (mark prices)
-            all_mids = self.info.all_mids()
+            all_mids = self._get_info().all_mids()
 
             # Update mark price for each position
             for sim in self.simulations.values():
@@ -349,7 +409,7 @@ class SimulatorEngine:
         for wallet_address, sim in list(self.simulations.items()):
             try:
                 # Get user fills
-                user_fills = self.info.user_fills(wallet_address)
+                user_fills = self._get_info().user_fills(wallet_address)
 
                 if not user_fills:
                     continue
@@ -359,7 +419,7 @@ class SimulatorEngine:
                     await self.process_fill(wallet_address, fill)
 
                 # Update trader's equity
-                user_state = self.info.user_state(wallet_address)
+                user_state = self._get_info().user_state(wallet_address)
                 if user_state and 'marginSummary' in user_state:
                     sim.last_trader_equity = float(user_state['marginSummary']['accountValue'])
 
