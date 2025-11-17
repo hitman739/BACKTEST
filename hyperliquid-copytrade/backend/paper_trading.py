@@ -109,7 +109,7 @@ class PaperTradingManager:
         try:
             while self.is_running:
                 await self._check_and_simulate()
-                await asyncio.sleep(5)  # Check every 5 seconds
+                await asyncio.sleep(15)  # Check every 15 seconds (reduced from 5 to avoid rate limiting)
 
         except Exception as e:
             logger.error(f"Error in paper trading loop: {e}")
@@ -134,7 +134,7 @@ class PaperTradingManager:
             user_state = self.info.user_state(self.target_wallet)
 
             if not user_state:
-                logger.warning("No user state returned from API")
+                logger.warning(f"No user state returned from API for {self.target_wallet}")
                 return
 
             current_positions = {}
@@ -169,7 +169,15 @@ class PaperTradingManager:
             self.last_positions = current_positions
 
         except Exception as e:
-            logger.error(f"Error checking positions: {e}")
+            error_msg = str(e)
+            if "403" in error_msg or "Access denied" in error_msg:
+                logger.error(f"⚠️ API RATE LIMIT - Hyperliquid bloqueó la petición (403). Reintentando en 15s...")
+                await self._send_update({
+                    "type": "warning",
+                    "message": "⚠️ Rate limit alcanzado. Hyperliquid está bloqueando peticiones. Esperando..."
+                })
+            else:
+                logger.error(f"Error checking positions for {self.target_wallet}: {e}")
 
     async def _process_position_changes(self, current_positions: dict, target_account_value: float):
         """Process position changes and simulate trades"""
