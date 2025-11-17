@@ -52,13 +52,15 @@ async def root():
     """API information"""
     return {
         "name": "Hyperliquid Copy Trading Simulator",
-        "version": "3.0.0",
-        "description": "Simulates a 10,000 USDT account copying a trader proportionally",
+        "version": "3.1.0",
+        "description": "Simulates a 10,000 USDT account copying a trader proportionally with SAME LEVERAGE",
+        "logic": "my_notional = (trader_margin / trader_equity) * my_equity * trader_leverage",
         "endpoints": {
-            "POST /sim/start": "Start simulating a wallet",
+            "POST /sim/start": "Start simulating a wallet (resets state, starts from NOW)",
             "POST /sim/stop": "Stop simulating a wallet",
             "GET /sim/snapshot": "Get simulation snapshot",
-            "GET /sim/wallets": "List all active simulations"
+            "GET /sim/wallets": "List all active simulations",
+            "GET /sim/debug/{wallet}": "Debug info: last 5 fills, trader equity, positions"
         },
         "active_simulations": len(simulator_engine.simulations)
     }
@@ -210,6 +212,43 @@ async def get_wallets():
 
     except Exception as e:
         logger.error(f"Error getting wallets: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/sim/debug/{wallet}")
+async def get_debug_info(wallet: str):
+    """
+    Get detailed debug information for a simulation
+
+    Returns:
+    - All snapshot data
+    - Last 5 fills processed
+    - Trader's equity
+    - Detailed position information with leverage
+
+    Use this endpoint to troubleshoot why the simulator isn't matching the trader correctly
+    """
+    try:
+        wallet = wallet.strip()
+
+        # Get simulation
+        simulation = simulator_engine.get_simulation(wallet)
+
+        if not simulation:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No active simulation found for {wallet}"
+            )
+
+        # Get debug info
+        debug_info = simulation.get_debug_info()
+
+        return debug_info
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting debug info: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 

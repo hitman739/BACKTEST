@@ -3,9 +3,16 @@ Simulator Engine - Proportional Copy Trading Simulation
 
 Simulates a 10,000 USDT account copying a Hyperliquid trader proportionally.
 - Uses REAL data from Hyperliquid (fills, positions, prices)
-- Only simulates trades AFTER start_time
-- Copies same % of equity risk as the trader
+- Only simulates trades AFTER start_time (no historical backfill)
+- Copies same % of equity risk as the trader with SAME LEVERAGE
 - No fees or funding (for now)
+
+LOGIC:
+- trader_notional = trader_size * price
+- trader_margin = trader_notional / trader_leverage
+- risk_fraction = trader_margin / trader_equity
+- my_notional = risk_fraction * my_equity * trader_leverage (SAME LEVERAGE AS TRADER)
+- my_size = my_notional / price
 """
 
 import asyncio
@@ -17,7 +24,10 @@ from hyperliquid.info import Info
 from hyperliquid.utils import constants
 import logging
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - [%(levelname)s] - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 
@@ -28,8 +38,7 @@ class SimulatedPosition:
     side: str  # "long" or "short"
     size_sim: float  # Simulated position size
     avg_entry_price_sim: float  # Average entry price for simulation
-    # Note: Simulation always uses 1x leverage
-    # Position sizing is based on trader's margin (considering their leverage)
+    leverage: float = 1.0  # Leverage used (same as trader)
 
     def get_unrealized_pnl(self, mark_price: float) -> float:
         """Calculate unrealized PnL for this position"""
@@ -52,6 +61,7 @@ class WalletSimulation:
     positions: Dict[str, SimulatedPosition] = field(default_factory=dict)  # symbol -> position
     trades_count_sim: int = 0  # Number of simulated trades
     last_trader_equity: Optional[float] = None  # Cache trader's equity
+    recent_fills: List[dict] = field(default_factory=list)  # Last 10 fills for debugging
 
     @property
     def unrealized_pnl_sim(self) -> float:
@@ -87,6 +97,7 @@ class WalletSimulation:
                     "side": pos.side,
                     "size_sim": pos.size_sim,
                     "avg_entry_price_sim": pos.avg_entry_price_sim,
+                    "leverage": pos.leverage,
                     "mark_price": mark_price,
                     "unrealized_pnl_pos": pos.get_unrealized_pnl(mark_price)
                 })
@@ -94,14 +105,25 @@ class WalletSimulation:
         return {
             "wallet": self.wallet_address,
             "start_time": self.start_time,
+            "start_time_iso": datetime.fromtimestamp(self.start_time).isoformat(),
+            "equity_sim_initial": self.equity_sim_initial,
             "equity_sim_actual": self.equity_sim_actual,
             "pnl_total_sim": self.pnl_total_sim,
             "pnl_pct_sim": self.pnl_pct_sim,
             "realized_pnl_sim": self.realized_pnl_sim,
             "unrealized_pnl_sim": self.unrealized_pnl_sim,
             "open_positions": open_positions,
-            "trades_count_sim": self.trades_count_sim
+            "num_open_positions": len(open_positions),
+            "trades_count_sim": self.trades_count_sim,
+            "roi_pct": self.pnl_pct_sim
         }
+
+    def get_debug_info(self) -> dict:
+        """Get detailed debug information including recent fills"""
+        snapshot = self.get_snapshot()
+        snapshot["recent_fills"] = self.recent_fills[-5:]  # Last 5 fills
+        snapshot["last_trader_equity"] = self.last_trader_equity
+        return snapshot
 
 
 class SimulatorEngine:
@@ -281,30 +303,64 @@ class SimulatorEngine:
             # Get trader's current position to determine leverage
             current_pos = simulation.positions.get(symbol)
 
-            # Calculate notional value of trader's fill
+            # ========================================
+            # PROPORTIONAL SIZING WITH SAME LEVERAGE
+            # ========================================
+
+            # 1. Calculate trader's notional
             notional_trader = size_trader * price_fill
 
-            # Get trader's leverage for this symbol
+            # 2. Get trader's leverage for this symbol
             leverage_trader = self.get_trader_leverage(wallet_address, symbol)
 
-            # Calculate MARGIN USED (not notional) considering leverage
-            # margin_used = notional / leverage
-            margin_used_trader = notional_trader / leverage_trader
+            # 3. Calculate trader's MARGIN used
+            margin_trader = notional_trader / leverage_trader
 
-            # Get trader's current equity
+            # 4. Get trader's current equity
             trader_equity = simulation.last_trader_equity or 100000.0
 
-            # Calculate risk fraction based on MARGIN, not notional
-            risk_frac = margin_used_trader / trader_equity
+            # 5. Calculate risk fraction
+            risk_frac = margin_trader / trader_equity
 
-            # Calculate simulated notional WITHOUT leverage
-            # Simulation always uses 1x leverage, but sizing is based on trader's margin
-            notional_sim = risk_frac * simulation.equity_sim_actual
-            size_sim = notional_sim / price_fill
+            # 6. Calculate MY notional WITH SAME LEVERAGE
+            # This is the KEY change: we use the same leverage as the trader
+            my_notional = risk_frac * simulation.equity_sim_actual * leverage_trader
+            size_sim = my_notional / price_fill
 
-            logger.info(f"Processing fill: {symbol} {side} {size_trader} @ {price_fill}")
-            logger.info(f"Trader leverage: {leverage_trader}x | Margin: ${margin_used_trader:.2f} | Risk: {risk_frac:.4%}")
-            logger.info(f"Sim notional: ${notional_sim:.2f} | Sim size: {size_sim:.6f}")
+            # ========================================
+            # DETAILED LOGGING
+            # ========================================
+            logger.info("=" * 80)
+            logger.info(f"🔄 NEW FILL from trader {wallet_address[:10]}...")
+            logger.info(f"   Coin: {symbol} | Side: {side} | Trader Size: {size_trader:.6f} | Price: ${price_fill:.2f}")
+            logger.info(f"   Trader Notional: ${notional_trader:.2f}")
+            logger.info(f"   Trader Leverage: {leverage_trader:.1f}x")
+            logger.info(f"   Trader Margin: ${margin_trader:.2f}")
+            logger.info(f"   Trader Equity: ${trader_equity:.2f}")
+            logger.info(f"   Risk Fraction: {risk_frac:.4%}")
+            logger.info(f"")
+            logger.info(f"📊 SIMULATED FILL:")
+            logger.info(f"   My Equity: ${simulation.equity_sim_actual:.2f}")
+            logger.info(f"   My Leverage: {leverage_trader:.1f}x (same as trader)")
+            logger.info(f"   My Notional: ${my_notional:.2f}")
+            logger.info(f"   My Size: {size_sim:.6f} {symbol}")
+            logger.info(f"   Entry Price: ${price_fill:.2f}")
+
+            # Save fill for debugging (keep last 10)
+            fill_debug = {
+                "time": fill_time,
+                "coin": symbol,
+                "side": side,
+                "trader_size": size_trader,
+                "my_size": size_sim,
+                "price": price_fill,
+                "leverage": leverage_trader,
+                "trader_notional": notional_trader,
+                "my_notional": my_notional
+            }
+            simulation.recent_fills.append(fill_debug)
+            if len(simulation.recent_fills) > 10:
+                simulation.recent_fills.pop(0)
 
             # Determine action based on side and current position
             if not current_pos or current_pos.size_sim == 0:
@@ -314,10 +370,15 @@ class SimulatorEngine:
                     symbol=symbol,
                     side=position_side,
                     size_sim=size_sim,
-                    avg_entry_price_sim=price_fill
+                    avg_entry_price_sim=price_fill,
+                    leverage=leverage_trader
                 )
                 simulation.trades_count_sim += 1
-                logger.info(f"Opened {position_side} position: {size_sim:.6f} {symbol} @ {price_fill}")
+                logger.info(f"")
+                logger.info(f"✅ OPENED {position_side.upper()} position: {size_sim:.6f} {symbol} @ ${price_fill:.2f}")
+                logger.info(f"   Leverage: {leverage_trader:.1f}x")
+                logger.info(f"   Current PnL: ${simulation.pnl_total_sim:.2f} | Equity: ${simulation.equity_sim_actual:.2f}")
+                logger.info("=" * 80)
 
             else:
                 # There's an existing position
@@ -336,9 +397,15 @@ class SimulatorEngine:
 
                     current_pos.size_sim = new_size
                     current_pos.avg_entry_price_sim = new_avg_price
+                    current_pos.leverage = leverage_trader
                     simulation.trades_count_sim += 1
 
-                    logger.info(f"Increased position: {new_size:.6f} {symbol} @ {new_avg_price:.2f}")
+                    logger.info(f"")
+                    logger.info(f"📈 INCREASED position: {old_size:.6f} → {new_size:.6f} {symbol}")
+                    logger.info(f"   New Avg Entry: ${new_avg_price:.2f}")
+                    logger.info(f"   Leverage: {leverage_trader:.1f}x")
+                    logger.info(f"   Current PnL: ${simulation.pnl_total_sim:.2f} | Equity: ${simulation.equity_sim_actual:.2f}")
+                    logger.info("=" * 80)
 
                 else:
                     # Closing or reducing position (opposite direction)
@@ -354,16 +421,24 @@ class SimulatorEngine:
                     simulation.realized_pnl_sim += realized_pnl
                     simulation.trades_count_sim += 1
 
-                    logger.info(f"Closed {close_size:.6f} {symbol}, realized PnL: ${realized_pnl:.2f}")
+                    logger.info(f"")
+                    logger.info(f"💰 CLOSED/REDUCED {current_pos.side.upper()} position: {old_size:.6f} → {max(0, old_size - close_size):.6f} {symbol}")
+                    logger.info(f"   Closed Size: {close_size:.6f}")
+                    logger.info(f"   Exit Price: ${price_fill:.2f}")
+                    logger.info(f"   Entry Price: ${current_pos.avg_entry_price_sim:.2f}")
+                    logger.info(f"   Realized PnL: ${realized_pnl:+.2f}")
+                    logger.info(f"   Total Realized PnL: ${simulation.realized_pnl_sim:.2f}")
 
                     # Update position size
                     new_size = old_size - close_size
                     if new_size <= 0.0001:  # Position fully closed
                         current_pos.size_sim = 0.0
-                        logger.info(f"Position fully closed for {symbol}")
+                        logger.info(f"   ✅ Position FULLY CLOSED for {symbol}")
                     else:
                         current_pos.size_sim = new_size
-                        logger.info(f"Position reduced to {new_size:.6f} {symbol}")
+                        logger.info(f"   📉 Position REDUCED to {new_size:.6f} {symbol}")
+
+                    logger.info(f"   Current Total PnL: ${simulation.pnl_total_sim:.2f} | Equity: ${simulation.equity_sim_actual:.2f}")
 
                     # If size_sim > old_size, we're reversing (close + open opposite)
                     if size_sim > old_size:
@@ -373,9 +448,12 @@ class SimulatorEngine:
                             symbol=symbol,
                             side=new_side,
                             size_sim=reverse_size,
-                            avg_entry_price_sim=price_fill
+                            avg_entry_price_sim=price_fill,
+                            leverage=leverage_trader
                         )
-                        logger.info(f"Reversed to {new_side} {reverse_size:.6f} {symbol} @ {price_fill}")
+                        logger.info(f"   🔄 REVERSED to {new_side.upper()}: {reverse_size:.6f} {symbol} @ ${price_fill:.2f}")
+
+                    logger.info("=" * 80)
 
         except Exception as e:
             logger.error(f"Error processing fill: {e}", exc_info=True)
