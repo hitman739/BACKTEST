@@ -1,0 +1,100 @@
+===============================================
+COMANDOS PARA HACER GIT PULL DESDE TU MAC
+===============================================
+
+Ejecuta estos comandos en tu Terminal:
+
+1. Navega al directorio del proyecto:
+   cd ~/Documents/BACKTEST/hyperliquid-copytrade
+
+2. Haz git pull:
+   git pull origin claude/fix-copytrading-simulator-016Rwzzxe4AenGmWU5Qw3sqH
+
+¡Eso es todo! No debería haber errores.
+
+===============================================
+ESTRUCTURA DEL PROYECTO DESPUÉS DEL PULL
+===============================================
+
+hyperliquid-copytrade/
+├── backend/              # Backend Python
+│   ├── api_simulator.py  # Simulator (lógica con leverage)
+│   ├── api_new.py        # Ultra Copy Trading
+│   └── ...
+├── frontend/             # React + Vite
+│   └── src/
+├── scripts/              # Scripts de inicio/parada
+│   ├── start_simulator.sh
+│   ├── stop_simulator.sh
+│   └── CLEAN_AND_PULL.sh
+├── docs/                 # Toda la documentación
+│   ├── INSTRUCCIONES.md
+│   ├── README_SIMULATOR.md
+│   └── PULL_COMMANDS.md
+└── README.md            # README principal
+
+===============================================
+CÓMO INICIAR EL SIMULATOR
+===============================================
+
+Opción 1 - Manual (recomendado para ver logs):
+
+   cd ~/Documents/BACKTEST/hyperliquid-copytrade/backend
+   python3 api_simulator.py
+
+Opción 2 - Con script:
+
+   cd ~/Documents/BACKTEST/hyperliquid-copytrade
+   ./scripts/start_simulator.sh
+
+===============================================
+CÓMO INICIAR ULTRA COPY TRADING
+===============================================
+
+   cd ~/Documents/BACKTEST/hyperliquid-copytrade/backend
+   python3 api_new.py
+
+===============================================
+CÓMO INICIAR EL FRONTEND
+===============================================
+
+   cd ~/Documents/BACKTEST/hyperliquid-copytrade/frontend
+   npm install  # Solo la primera vez
+   npm run dev
+
+===============================================
+ENDPOINTS DISPONIBLES
+===============================================
+
+Simulator (puerto 8000):
+- POST /sim/start
+- GET /sim/snapshot?wallet=...
+- GET /sim/debug/{wallet}
+- GET /docs
+
+Ultra Copy Trading (puerto 8000):
+- POST /wallet/add
+- GET /status
+- WebSocket: ws://localhost:8000/ws
+
+Frontend (puerto 5173):
+- http://localhost:5173/
+
+===============================================
+NOTAS IMPORTANTES
+===============================================
+
+1. El simulator y ultra copy trading NO pueden correr al mismo tiempo
+   (ambos usan puerto 8000)
+
+2. Los endpoints del frontend siguen funcionando igual:
+   - /simulator usa api_new.py
+   - /simulator-v2 usa api_new.py con WebSockets
+
+3. NO se modificó la lógica del simulador ni de ultra copy trading,
+   solo se organizaron carpetas y documentación.
+
+4. Todos los scripts ahora están en scripts/
+   Toda la documentación ahora está en docs/
+
+===============================================
