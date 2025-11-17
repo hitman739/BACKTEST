@@ -28,7 +28,8 @@ class SimulatedPosition:
     side: str  # "long" or "short"
     size_sim: float  # Simulated position size
     avg_entry_price_sim: float  # Average entry price for simulation
-    leverage: float = 1.0  # Leverage used (copied from trader)
+    # Note: Simulation always uses 1x leverage
+    # Position sizing is based on trader's margin (considering their leverage)
 
     def get_unrealized_pnl(self, mark_price: float) -> float:
         """Calculate unrealized PnL for this position"""
@@ -86,7 +87,6 @@ class WalletSimulation:
                     "side": pos.side,
                     "size_sim": pos.size_sim,
                     "avg_entry_price_sim": pos.avg_entry_price_sim,
-                    "leverage": pos.leverage,
                     "mark_price": mark_price,
                     "unrealized_pnl_pos": pos.get_unrealized_pnl(mark_price)
                 })
@@ -237,14 +237,14 @@ class SimulatorEngine:
             # Calculate risk fraction based on MARGIN, not notional
             risk_frac = margin_used_trader / trader_equity
 
-            # Calculate simulated margin and size using SAME LEVERAGE
-            margin_sim = risk_frac * simulation.equity_sim_actual
-            notional_sim = margin_sim * leverage_trader  # Apply same leverage
+            # Calculate simulated notional WITHOUT leverage
+            # Simulation always uses 1x leverage, but sizing is based on trader's margin
+            notional_sim = risk_frac * simulation.equity_sim_actual
             size_sim = notional_sim / price_fill
 
             logger.info(f"Processing fill: {symbol} {side} {size_trader} @ {price_fill}")
-            logger.info(f"Leverage: {leverage_trader}x | Margin used: ${margin_used_trader:.2f}")
-            logger.info(f"Risk frac: {risk_frac:.4f} | Sim size: {size_sim:.6f}")
+            logger.info(f"Trader leverage: {leverage_trader}x | Margin: ${margin_used_trader:.2f} | Risk: {risk_frac:.4%}")
+            logger.info(f"Sim notional: ${notional_sim:.2f} | Sim size: {size_sim:.6f}")
 
             # Determine action based on side and current position
             if not current_pos or current_pos.size_sim == 0:
@@ -254,11 +254,10 @@ class SimulatorEngine:
                     symbol=symbol,
                     side=position_side,
                     size_sim=size_sim,
-                    avg_entry_price_sim=price_fill,
-                    leverage=leverage_trader
+                    avg_entry_price_sim=price_fill
                 )
                 simulation.trades_count_sim += 1
-                logger.info(f"Opened {position_side} position: {size_sim:.6f} {symbol} @ {price_fill} (leverage: {leverage_trader}x)")
+                logger.info(f"Opened {position_side} position: {size_sim:.6f} {symbol} @ {price_fill}")
 
             else:
                 # There's an existing position
@@ -277,10 +276,9 @@ class SimulatorEngine:
 
                     current_pos.size_sim = new_size
                     current_pos.avg_entry_price_sim = new_avg_price
-                    current_pos.leverage = leverage_trader  # Update leverage
                     simulation.trades_count_sim += 1
 
-                    logger.info(f"Increased position: {new_size:.6f} {symbol} @ {new_avg_price:.2f} (leverage: {leverage_trader}x)")
+                    logger.info(f"Increased position: {new_size:.6f} {symbol} @ {new_avg_price:.2f}")
 
                 else:
                     # Closing or reducing position (opposite direction)
@@ -315,10 +313,9 @@ class SimulatorEngine:
                             symbol=symbol,
                             side=new_side,
                             size_sim=reverse_size,
-                            avg_entry_price_sim=price_fill,
-                            leverage=leverage_trader
+                            avg_entry_price_sim=price_fill
                         )
-                        logger.info(f"Reversed to {new_side} {reverse_size:.6f} {symbol} @ {price_fill} (leverage: {leverage_trader}x)")
+                        logger.info(f"Reversed to {new_side} {reverse_size:.6f} {symbol} @ {price_fill}")
 
         except Exception as e:
             logger.error(f"Error processing fill: {e}", exc_info=True)
