@@ -365,11 +365,25 @@ async def get_status():
             if metrics:
                 wallet_summaries.append({
                     "wallet": wallet,
+                    # Current balance (equity)
+                    "current_balance": metrics["equity"],
                     "equity": metrics["equity"],
+                    # PnL fields
                     "total_pnl": metrics["total_pnl"],
+                    "unrealized_pnl": metrics["unrealized_pnl"],
+                    "realized_pnl": metrics["realized_pnl"],
+                    # ROI
                     "roi": metrics["roi"],
+                    # Trades
+                    "trades_copied": metrics["num_trades"],
                     "num_trades": metrics["num_trades"],
+                    # Open positions
                     "num_open_positions": metrics["num_open_positions"],
+                    # Fees
+                    "total_fees_paid": metrics["total_fees"],
+                    # Fee factors
+                    "fee_factor_ratio": metrics["fee_factor_mixed"],
+                    "fee_factor_ratio_taker": metrics["fee_factor_taker"],
                     "fee_factor_mixed": metrics["fee_factor_mixed"],
                     "fee_factor_taker": metrics["fee_factor_taker"]
                 })

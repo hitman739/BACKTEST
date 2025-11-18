@@ -29,7 +29,7 @@ function Simulator() {
       const response = await fetch(`${API_URL}/status`)
       if (response.ok) {
         const data = await response.json()
-        if (data.multi_wallet && data.wallets) {
+        if (data.wallets && Array.isArray(data.wallets)) {
           setWallets(data.wallets)
         }
       }
