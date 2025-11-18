@@ -21,19 +21,19 @@
 
 .stop-all-button {
   padding: 0.75rem 1.5rem;
-  background: rgba(255, 51, 102, 0.1);
-  border: 1px solid rgba(255, 51, 102, 0.5);
+  background: rgba(255, 165, 0, 0.15);
+  border: 1px solid rgba(255, 165, 0, 0.5);
   border-radius: 8px;
-  color: #ff3366;
+  color: #FFA500;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
 }
 
 .stop-all-button:hover:not(:disabled) {
-  background: rgba(255, 51, 102, 0.2);
-  border-color: #ff3366;
-  box-shadow: 0 0 15px rgba(255, 51, 102, 0.3);
+  background: rgba(255, 165, 0, 0.25);
+  border-color: #FFA500;
+  box-shadow: 0 0 15px rgba(255, 165, 0, 0.3);
 }
 
 .stop-all-button:disabled {
@@ -100,26 +100,26 @@
 }
 
 .ffr-high {
-  background: #00ff88;
+  background: #FFED4E;
   color: #000;
 }
 
 .ffr-medium {
-  background: #ffaa00;
+  background: #FFD700;
   color: #000;
 }
 
 .ffr-low {
-  background: #ff3366;
-  color: #fff;
+  background: #FFA500;
+  color: #000;
 }
 
 .card-remove-btn {
   padding: 0.5rem 0.75rem;
-  background: rgba(255, 51, 102, 0.1);
-  border: 1px solid rgba(255, 51, 102, 0.3);
+  background: rgba(255, 165, 0, 0.15);
+  border: 1px solid rgba(255, 165, 0, 0.4);
   border-radius: 6px;
-  color: #ff3366;
+  color: #FFA500;
   font-size: 1.2rem;
   font-weight: bold;
   cursor: pointer;
@@ -128,8 +128,8 @@
 }
 
 .card-remove-btn:hover:not(:disabled) {
-  background: rgba(255, 51, 102, 0.2);
-  border-color: #ff3366;
+  background: rgba(255, 165, 0, 0.25);
+  border-color: #FFA500;
   transform: scale(1.1);
 }
 
@@ -170,11 +170,11 @@
 }
 
 .main-stat-value.positive {
-  color: #00ff88;
+  color: #FFED4E;
 }
 
 .main-stat-value.negative {
-  color: #ff3366;
+  color: #FFA500;
 }
 
 /* Secondary Stats Grid */
@@ -208,11 +208,11 @@
 }
 
 .stat-box-value.positive {
-  color: #00ff88;
+  color: #FFED4E;
 }
 
 .stat-box-value.negative {
-  color: #ff3366;
+  color: #FFA500;
 }
 
 /* Card Footer */
@@ -378,15 +378,15 @@
 }
 
 .alert-error {
-  background: rgba(255, 51, 102, 0.1);
-  border: 1px solid rgba(255, 51, 102, 0.5);
-  color: #ff3366;
+  background: rgba(255, 165, 0, 0.15);
+  border: 1px solid rgba(255, 165, 0, 0.5);
+  color: #FFA500;
 }
 
 .alert-success {
-  background: rgba(0, 255, 136, 0.1);
-  border: 1px solid rgba(0, 255, 136, 0.5);
-  color: #00ff88;
+  background: rgba(255, 215, 0, 0.15);
+  border: 1px solid rgba(255, 215, 0, 0.5);
+  color: #FFD700;
 }
 
 .alert strong {

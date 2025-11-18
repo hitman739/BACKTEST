@@ -178,11 +178,11 @@ function SimulatorV2() {
 
   const getFeeBadgeColor = (level) => {
     const colors = {
-      'excellent': '#00ff88',
-      'good': '#00ccff',
-      'average': '#ffaa00',
-      'poor': '#ff6600',
-      'terrible': '#ff3366',
+      'excellent': '#FFED4E',
+      'good': '#FFD700',
+      'average': '#FFC700',
+      'poor': '#FFB700',
+      'terrible': '#FFA500',
       'unknown': '#666666'
     }
     return colors[level] || '#666666'
@@ -205,10 +205,10 @@ function SimulatorV2() {
           fontSize: '0.9rem'
         }}>
           <span style={{
-            color: isConnected ? '#00ff88' : '#ff3366',
+            color: isConnected ? '#FFED4E' : '#FFA500',
             fontWeight: 'bold'
           }}>
-            {isConnected ? '🟢 Connected' : '🔴 Disconnected'}
+            {isConnected ? '● Connected' : '○ Disconnected'}
           </span>
           <span style={{ color: '#888' }}>
             Updates every 1 second via WebSocket
@@ -328,14 +328,14 @@ function SimulatorV2() {
 
             <div className="stat-row">
               <span>PnL:</span>
-              <span style={{ color: wallet.total_pnl >= 0 ? '#00ff88' : '#ff3366' }}>
+              <span style={{ color: wallet.total_pnl >= 0 ? '#FFED4E' : '#FFA500' }}>
                 ${wallet.total_pnl.toFixed(2)}
               </span>
             </div>
 
             <div className="stat-row">
               <span>ROI:</span>
-              <span style={{ color: wallet.roi >= 0 ? '#00ff88' : '#ff3366' }}>
+              <span style={{ color: wallet.roi >= 0 ? '#FFED4E' : '#FFA500' }}>
                 {wallet.roi.toFixed(2)}%
               </span>
             </div>
@@ -357,10 +357,10 @@ function SimulatorV2() {
                 width: '100%',
                 marginTop: '15px',
                 padding: '8px',
-                background: 'rgba(255, 51, 102, 0.2)',
-                border: '1px solid #ff3366',
+                background: 'rgba(255, 165, 0, 0.2)',
+                border: '1px solid #FFA500',
                 borderRadius: '5px',
-                color: '#ff3366',
+                color: '#FFA500',
                 cursor: 'pointer'
               }}
             >

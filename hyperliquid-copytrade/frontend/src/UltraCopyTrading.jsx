@@ -135,14 +135,14 @@ function UltraCopyTrading() {
       {/* Status Banner */}
       {isRunning && (
         <div style={{
-          background: 'rgba(0, 255, 136, 0.1)',
-          border: '1px solid rgba(0, 255, 136, 0.3)',
+          background: 'rgba(255, 215, 0, 0.1)',
+          border: '1px solid rgba(255, 215, 0, 0.3)',
           borderRadius: '10px',
           padding: '15px',
           marginBottom: '20px'
         }}>
-          <h3 style={{ color: '#00ff88', marginBottom: '10px' }}>
-            🟢 Copy Trading Activo
+          <h3 style={{ color: '#FFD700', marginBottom: '10px' }}>
+            ● Copy Trading Activo
           </h3>
           {stats && (
             <div style={{ fontSize: '0.9rem', color: '#ccc' }}>
@@ -309,16 +309,16 @@ function UltraCopyTrading() {
             disabled={loading}
             style={{
               padding: '15px 40px',
-              background: loading ? '#666' : 'rgba(255, 51, 102, 0.2)',
-              border: '1px solid #ff3366',
+              background: loading ? '#666' : 'rgba(255, 165, 0, 0.2)',
+              border: '1px solid #FFA500',
               borderRadius: '8px',
-              color: '#ff3366',
+              color: '#FFA500',
               fontSize: '1rem',
               fontWeight: 'bold',
               cursor: loading ? 'not-allowed' : 'pointer'
             }}
           >
-            {loading ? 'Deteniendo...' : '🛑 Detener Copy Trading'}
+            {loading ? 'Deteniendo...' : '⏹ Detener Copy Trading'}
           </button>
         </div>
       )}

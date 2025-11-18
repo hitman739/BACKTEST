@@ -9,7 +9,7 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #0f0f23;
+  background: #000000;
   color: #e0e0e0;
 }
 
@@ -18,7 +18,7 @@ code {
     monospace;
 }
 
-/* Global shared styles */
+/* Global shared styles - Black & Yellow Theme */
 .page-container {
   min-height: 100vh;
   padding: 2rem;
@@ -59,6 +59,7 @@ code {
   background-clip: text;
   margin-bottom: 0.5rem;
   letter-spacing: 2px;
+  text-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
 }
 
 .page-subtitle {
@@ -68,20 +69,20 @@ code {
 }
 
 .error-message {
-  background: rgba(255, 51, 102, 0.1);
-  border: 1px solid rgba(255, 51, 102, 0.5);
+  background: rgba(255, 165, 0, 0.15);
+  border: 1px solid rgba(255, 165, 0, 0.5);
   border-radius: 8px;
   padding: 1rem 1.5rem;
-  color: #ff3366;
+  color: #FFA500;
   text-align: center;
 }
 
 .success-message {
-  background: rgba(0, 255, 136, 0.1);
-  border: 1px solid rgba(0, 255, 136, 0.5);
+  background: rgba(255, 215, 0, 0.15);
+  border: 1px solid rgba(255, 215, 0, 0.5);
   border-radius: 8px;
   padding: 1rem 1.5rem;
-  color: #00ff88;
+  color: #FFD700;
   text-align: center;
 }
 
