@@ -178,11 +178,11 @@ function SimulatorV2() {
 
   const getFeeBadgeColor = (level) => {
     const colors = {
-      'excellent': '#FFED4E',
-      'good': '#FFD700',
-      'average': '#FFC700',
-      'poor': '#FFB700',
-      'terrible': '#FFA500',
+      'excellent': '#00ff88',
+      'good': '#00cc77',
+      'average': '#FFD700',
+      'poor': '#ff9955',
+      'terrible': '#ff3366',
       'unknown': '#666666'
     }
     return colors[level] || '#666666'
@@ -205,7 +205,7 @@ function SimulatorV2() {
           fontSize: '0.9rem'
         }}>
           <span style={{
-            color: isConnected ? '#FFED4E' : '#FFA500',
+            color: isConnected ? '#00ff88' : '#ff3366',
             fontWeight: 'bold'
           }}>
             {isConnected ? '● Connected' : '○ Disconnected'}
@@ -328,14 +328,14 @@ function SimulatorV2() {
 
             <div className="stat-row">
               <span>PnL:</span>
-              <span style={{ color: wallet.total_pnl >= 0 ? '#FFED4E' : '#FFA500' }}>
+              <span style={{ color: wallet.total_pnl >= 0 ? '#00ff88' : '#ff3366' }}>
                 ${wallet.total_pnl.toFixed(2)}
               </span>
             </div>
 
             <div className="stat-row">
               <span>ROI:</span>
-              <span style={{ color: wallet.roi >= 0 ? '#FFED4E' : '#FFA500' }}>
+              <span style={{ color: wallet.roi >= 0 ? '#00ff88' : '#ff3366' }}>
                 {wallet.roi.toFixed(2)}%
               </span>
             </div>
@@ -357,10 +357,10 @@ function SimulatorV2() {
                 width: '100%',
                 marginTop: '15px',
                 padding: '8px',
-                background: 'rgba(255, 165, 0, 0.2)',
-                border: '1px solid #FFA500',
+                background: 'rgba(255, 51, 102, 0.2)',
+                border: '1px solid #ff3366',
                 borderRadius: '5px',
-                color: '#FFA500',
+                color: '#ff3366',
                 cursor: 'pointer'
               }}
             >

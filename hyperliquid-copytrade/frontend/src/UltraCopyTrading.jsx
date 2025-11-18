@@ -45,17 +45,17 @@ function UltraCopyTrading() {
 
   const handleStart = async () => {
     if (!apiKey || !apiSecret || !targetWallet) {
-      setError('Por favor completa todos los campos requeridos')
+      setError('Please complete all required fields')
       return
     }
 
     if (!targetWallet.startsWith('0x')) {
-      setError('La wallet debe empezar con 0x')
+      setError('Wallet must start with 0x')
       return
     }
 
     if (copyRatio <= 0 || copyRatio > 10) {
-      setError('Copy ratio debe estar entre 0.01 y 10')
+      setError('Copy ratio must be between 0.01 and 10')
       return
     }
 
@@ -106,11 +106,11 @@ function UltraCopyTrading() {
       const data = await response.json()
 
       if (response.ok) {
-        setSuccess(`✅ Copy trading detenido. ${data.stats?.trades_copied || 0} trades copiados`)
+        setSuccess(`✅ Copy trading stopped. ${data.stats?.trades_copied || 0} trades copied`)
         setIsRunning(false)
         setStats(null)
       } else {
-        setError(data.detail || 'Error al detener')
+        setError(data.detail || 'Error stopping')
       }
     } catch (err) {
       setError(`Error: ${err.message}`)
@@ -122,39 +122,39 @@ function UltraCopyTrading() {
   return (
     <div className="page-container">
       <button className="back-button" onClick={() => navigate('/')}>
-        ← Volver
+        ← Back
       </button>
 
       <div className="page-header">
         <h1 className="page-title">⚡ ULTRA COPY TRADING</h1>
         <p className="page-subtitle">
-          Copy trading en tiempo real con latencia {'<'} 100ms
+          Real-time copy trading with {'<'}100ms latency
         </p>
       </div>
 
       {/* Status Banner */}
       {isRunning && (
         <div style={{
-          background: 'rgba(255, 215, 0, 0.1)',
-          border: '1px solid rgba(255, 215, 0, 0.3)',
+          background: 'rgba(0, 255, 136, 0.1)',
+          border: '1px solid rgba(0, 255, 136, 0.3)',
           borderRadius: '10px',
           padding: '15px',
           marginBottom: '20px'
         }}>
-          <h3 style={{ color: '#FFD700', marginBottom: '10px' }}>
-            ● Copy Trading Activo
+          <h3 style={{ color: '#00ff88', marginBottom: '10px' }}>
+            ● Copy Trading Active
           </h3>
           {stats && (
             <div style={{ fontSize: '0.9rem', color: '#ccc' }}>
-              <div>Trades copiados: {stats.trades_copied}</div>
+              <div>Trades copied: {stats.trades_copied}</div>
               {stats.avg_latency_ms > 0 && (
                 <>
-                  <div>Latencia promedio: {stats.avg_latency_ms.toFixed(1)}ms</div>
-                  <div>Latencia mín/máx: {stats.min_latency_ms.toFixed(1)}ms / {stats.max_latency_ms.toFixed(1)}ms</div>
+                  <div>Average latency: {stats.avg_latency_ms.toFixed(1)}ms</div>
+                  <div>Min/Max latency: {stats.min_latency_ms.toFixed(1)}ms / {stats.max_latency_ms.toFixed(1)}ms</div>
                 </>
               )}
-              <div>Mis posiciones: {stats.my_positions}</div>
-              <div>Target posiciones: {stats.target_positions}</div>
+              <div>My positions: {stats.my_positions}</div>
+              <div>Target positions: {stats.target_positions}</div>
             </div>
           )}
         </div>
@@ -183,7 +183,7 @@ function UltraCopyTrading() {
           marginBottom: '20px'
         }}>
           <h3 style={{ color: '#FFD700', marginBottom: '20px' }}>
-            Configuración
+            Configuration
           </h3>
 
           <div className="form-group" style={{ marginBottom: '20px' }}>
@@ -194,7 +194,7 @@ function UltraCopyTrading() {
               type="password"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Tu Hyperliquid API Key"
+              placeholder="Your Hyperliquid API Key"
               style={{
                 width: '100%',
                 padding: '12px',
@@ -215,7 +215,7 @@ function UltraCopyTrading() {
               type="password"
               value={apiSecret}
               onChange={(e) => setApiSecret(e.target.value)}
-              placeholder="Tu Hyperliquid API Secret"
+              placeholder="Your Hyperliquid API Secret"
               style={{
                 width: '100%',
                 padding: '12px',
@@ -264,7 +264,7 @@ function UltraCopyTrading() {
               style={{ width: '100%' }}
             />
             <div style={{ fontSize: '0.8rem', color: '#888', marginTop: '5px' }}>
-              1.0 = copias 100%, 0.5 = copias 50%, 2.0 = copias 200%
+              1.0 = copy 100%, 0.5 = copy 50%, 2.0 = copy 200%
             </div>
           </div>
 
@@ -276,7 +276,7 @@ function UltraCopyTrading() {
                 onChange={(e) => setUseTestnet(e.target.checked)}
                 style={{ marginRight: '10px' }}
               />
-              Usar Testnet (recomendado para pruebas)
+              Use Testnet (recommended for testing)
             </label>
           </div>
 
@@ -296,7 +296,7 @@ function UltraCopyTrading() {
               transition: 'all 0.3s'
             }}
           >
-            {loading ? 'Iniciando...' : '🚀 Iniciar Copy Trading'}
+            {loading ? 'Starting...' : '🚀 Start Copy Trading'}
           </button>
         </div>
       )}
@@ -309,16 +309,16 @@ function UltraCopyTrading() {
             disabled={loading}
             style={{
               padding: '15px 40px',
-              background: loading ? '#666' : 'rgba(255, 165, 0, 0.2)',
-              border: '1px solid #FFA500',
+              background: loading ? '#666' : 'rgba(255, 51, 102, 0.2)',
+              border: '1px solid #ff3366',
               borderRadius: '8px',
-              color: '#FFA500',
+              color: '#ff3366',
               fontSize: '1rem',
               fontWeight: 'bold',
               cursor: loading ? 'not-allowed' : 'pointer'
             }}
           >
-            {loading ? 'Deteniendo...' : '⏹ Detener Copy Trading'}
+            {loading ? 'Stopping...' : '⏹ Stop Copy Trading'}
           </button>
         </div>
       )}
@@ -331,14 +331,14 @@ function UltraCopyTrading() {
         border: '1px solid rgba(255, 215, 0, 0.2)',
         borderRadius: '10px'
       }}>
-        <h4 style={{ color: '#FFD700', marginBottom: '15px' }}>ℹ️ Información</h4>
+        <h4 style={{ color: '#FFD700', marginBottom: '15px' }}>ℹ️ Information</h4>
         <ul style={{ color: '#ccc', fontSize: '0.9rem', lineHeight: '1.8' }}>
-          <li>⚡ Latencia objetivo: {'<'} 100ms (evento → orden)</li>
-          <li>🎯 Sistema WebSocket en tiempo real</li>
-          <li>💰 Usa dinero real - empieza con testnet</li>
-          <li>🔒 Tus API keys NO se guardan</li>
-          <li>📊 Latencia se muestra en tiempo real</li>
-          <li>⚠️ Empieza con copy ratio bajo (0.1-0.5) para probar</li>
+          <li>⚡ Target latency: {'<'} 100ms (event → order)</li>
+          <li>🎯 Real-time WebSocket system</li>
+          <li>💰 Uses real money - start with testnet</li>
+          <li>🔒 Your API keys are NOT saved</li>
+          <li>📊 Latency shown in real-time</li>
+          <li>⚠️ Start with low copy ratio (0.1-0.5) for testing</li>
         </ul>
       </div>
     </div>

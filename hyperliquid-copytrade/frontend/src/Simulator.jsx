@@ -40,12 +40,12 @@ function Simulator() {
 
   const handleAddWallet = async () => {
     if (!walletToAdd) {
-      setError('Ingresa una wallet address')
+      setError('Enter a wallet address')
       return
     }
 
     if (!walletToAdd.startsWith('0x')) {
-      setError('La wallet debe empezar con 0x')
+      setError('Wallet must start with 0x')
       return
     }
 
@@ -69,11 +69,11 @@ function Simulator() {
       const data = await response.json()
 
       if (response.ok) {
-        setSuccess(`Wallet añadida: ${walletToAdd.slice(0, 10)}...`)
+        setSuccess(`Wallet added: ${walletToAdd.slice(0, 10)}...`)
         setWalletToAdd('')
         await checkStatus()
       } else {
-        setError(data.detail || 'Error al añadir wallet')
+        setError(data.detail || 'Error adding wallet')
       }
     } catch (err) {
       setError(`Error: ${err.message}`)
@@ -92,11 +92,11 @@ function Simulator() {
       })
 
       if (response.ok) {
-        setSuccess(`Wallet removida: ${wallet.slice(0, 10)}...`)
+        setSuccess(`Wallet removed: ${wallet.slice(0, 10)}...`)
         await checkStatus()
       } else {
         const data = await response.json()
-        setError(data.detail || 'Error al remover wallet')
+        setError(data.detail || 'Error removing wallet')
       }
     } catch (err) {
       setError(`Error: ${err.message}`)
@@ -115,12 +115,12 @@ function Simulator() {
       })
 
       if (response.ok) {
-        setSuccess('Todas las wallets detenidas')
+        setSuccess('All wallets stopped')
         setWallets([])
         await checkStatus()
       } else {
         const data = await response.json()
-        setError(data.detail || 'Error al detener wallets')
+        setError(data.detail || 'Error stopping wallets')
       }
     } catch (err) {
       setError(`Error: ${err.message}`)
@@ -132,18 +132,18 @@ function Simulator() {
   return (
     <div className="page-container">
       <button className="back-button" onClick={() => navigate('/')}>
-        ← Volver
+        ← Back
       </button>
 
       <div className="page-header">
         <h1 className="page-title">SIMULATOR</h1>
-        <p className="page-subtitle">Testea hasta 15 wallets con dinero fake y compara traders</p>
+        <p className="page-subtitle">Test up to 15 wallets with fake money and compare traders</p>
       </div>
 
       {wallets.length > 0 && (
         <div className="wallets-section">
           <div className="section-header">
-            <h3>🔍 Testeando {wallets.length} Wallet{wallets.length > 1 ? 's' : ''}</h3>
+            <h3>🔍 Testing {wallets.length} Wallet{wallets.length > 1 ? 's' : ''}</h3>
             <button onClick={handleStopAll} className="stop-all-button" disabled={loading}>
               Stop All
             </button>
@@ -239,7 +239,7 @@ function Simulator() {
 
                   {/* Footer */}
                   <div className="trader-card-footer">
-                    <span className="trades-count">{wallet.trades_copied} trades copiados</span>
+                    <span className="trades-count">{wallet.trades_copied} trades copied</span>
                   </div>
                 </div>
               ))}
@@ -248,8 +248,8 @@ function Simulator() {
       )}
 
       <div className="add-wallet-card">
-        <h3 className="card-title">Añadir Wallets para Testear</h3>
-        <p className="card-subtitle">Puedes añadir hasta 15 wallets y compararlas en tiempo real</p>
+        <h3 className="card-title">Add Wallets to Test</h3>
+        <p className="card-subtitle">You can add up to 15 wallets and compare them in real time</p>
 
         <div className="add-wallet-form">
           <div className="form-row">
@@ -282,7 +282,7 @@ function Simulator() {
               className="add-button"
               disabled={loading || wallets.length >= 15}
             >
-              {loading ? '...' : `+ Añadir (${wallets.length}/15)`}
+              {loading ? '...' : `+ Add (${wallets.length}/15)`}
             </button>
           </div>
 
@@ -307,7 +307,7 @@ function Simulator() {
 
         {wallets.length === 0 && (
           <div className="empty-state">
-            <p>👆 Añade wallets para comenzar a testear</p>
+            <p>👆 Add wallets to start testing</p>
           </div>
         )}
       </div>
@@ -320,7 +320,7 @@ function Simulator() {
 
       {success && (
         <div className="alert alert-success">
-          <strong>Éxito:</strong> {success}
+          <strong>Success:</strong> {success}
         </div>
       )}
     </div>
