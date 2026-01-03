@@ -1,7 +1,7 @@
 {
-  "name": "watch-valuation",
-  "version": "1.0.0",
-  "description": "",
+  "name": "lapometro",
+  "version": "2.0.0",
+  "description": "La forma más rápida de valorar relojes usados - LAPOMETRO",
   "main": "index.js",
   "scripts": {
     "dev": "next dev",
@@ -13,7 +13,9 @@
   "license": "ISC",
   "dependencies": {
     "axios": "^1.13.2",
+    "bcryptjs": "^3.0.3",
     "next": "^16.1.1",
+    "next-auth": "^4.24.13",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "recharts": "^3.6.0"
